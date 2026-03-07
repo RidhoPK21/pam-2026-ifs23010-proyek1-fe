@@ -1,0 +1,261 @@
+package org.delcom.pam_proyek1_ifs23010.ui.viewmodels
+
+import android.util.Log
+import androidx.annotation.Keep
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+// Pastikan import di bawah ini disesuaikan dengan struktur folder Anda yang baru (events)
+import org.delcom.pam_proyek1_ifs23010.network.events.data.RequestAuthLogin
+import org.delcom.pam_proyek1_ifs23010.network.events.data.RequestAuthLogout
+import org.delcom.pam_proyek1_ifs23010.network.events.data.RequestAuthRefreshToken
+import org.delcom.pam_proyek1_ifs23010.network.events.data.RequestAuthRegister
+import org.delcom.pam_proyek1_ifs23010.network.events.data.ResponseAuthLogin
+import org.delcom.pam_proyek1_ifs23010.network.events.service.IEventRepository
+import org.delcom.pam_proyek1_ifs23010.prefs.AuthTokenPref
+import javax.inject.Inject
+
+sealed interface AuthUIState {
+    data class Success(val data: ResponseAuthLogin) : AuthUIState
+    data class Error(val message: String) : AuthUIState
+    object Loading : AuthUIState
+}
+
+sealed interface AuthActionUIState {
+    data class Success(val message: String) : AuthActionUIState
+    data class Error(val message: String) : AuthActionUIState
+    object Loading : AuthActionUIState
+}
+
+sealed interface AuthLogoutUIState {
+    data class Success(val message: String) : AuthLogoutUIState
+    data class Error(val message: String) : AuthLogoutUIState
+    object Loading : AuthLogoutUIState
+}
+
+data class UIStateAuth(
+    val auth: AuthUIState = AuthUIState.Loading,
+    var authRegister: AuthActionUIState = AuthActionUIState.Loading,
+    var authLogout: AuthLogoutUIState = AuthLogoutUIState.Loading,
+    var authRefreshToken: AuthActionUIState = AuthActionUIState.Loading,
+)
+
+@HiltViewModel
+@Keep
+class AuthViewModel @Inject constructor(
+    private val repository: IEventRepository, // Ubah dari ITodoRepository
+    private val authTokenPref: AuthTokenPref
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(UIStateAuth())
+    val uiState = _uiState.asStateFlow()
+
+    init {
+        // Otomatis memuat token saat ViewModel diinisialisasi
+        loadTokenFromPreferences()
+    }
+
+    fun register(
+        name: String,
+        username: String,
+        password: String,
+    ) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    authRegister = AuthActionUIState.Loading
+                )
+            }
+            _uiState.update { it ->
+                val tmpState = runCatching {
+                    repository.postRegister(
+                        RequestAuthRegister(
+                            name = name,
+                            username = username,
+                            password = password,
+                        )
+                    )
+                }.fold(
+                    onSuccess = { response ->
+                        if (response.status == "success") {
+                            AuthActionUIState.Success(response.data!!.userId)
+                        } else {
+                            AuthActionUIState.Error(response.message)
+                        }
+                    },
+                    onFailure = { error ->
+                        AuthActionUIState.Error(error.message ?: "Unknown error")
+                    }
+                )
+
+                it.copy(
+                    authRegister = tmpState
+                )
+            }
+        }
+    }
+
+    fun login(
+        username: String,
+        password: String,
+    ) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    auth = AuthUIState.Loading
+                )
+            }
+            _uiState.update { state ->
+                val tmpState = runCatching {
+                    repository.postLogin(
+                        RequestAuthLogin(
+                            username = username,
+                            password = password,
+                        )
+                    )
+                }.fold(
+                    onSuccess = { response ->
+                        if (response.status == "success" && response.data != null) {
+                            // Proses saveAuthToken sekarang memanggil suspend function
+                            viewModelScope.launch {
+                                authTokenPref.saveAuthToken(response.data.authToken)
+                                authTokenPref.saveRefreshToken(response.data.refreshToken)
+                            }
+                            AuthUIState.Success(response.data)
+                        } else {
+                            AuthUIState.Error(response.message)
+                        }
+                    },
+                    onFailure = { error ->
+                        AuthUIState.Error(error.message ?: "Unknown error")
+                    }
+                )
+
+                state.copy(
+                    auth = tmpState
+                )
+            }
+        }
+    }
+
+    fun logout(
+        authToken: String,
+    ) {
+        viewModelScope.launch {
+            // Hapus token secara asynchronous
+            authTokenPref.clearAuthToken()
+            authTokenPref.clearRefreshToken()
+
+            _uiState.update {
+                it.copy(
+                    authLogout = AuthLogoutUIState.Loading
+                )
+            }
+            _uiState.update { state ->
+                val tmpState = runCatching {
+                    repository.postLogout(
+                        RequestAuthLogout(
+                            authToken = authToken
+                        )
+                    )
+                }.fold(
+                    onSuccess = { response ->
+                        if (response.status == "success") {
+                            AuthLogoutUIState.Success(response.message)
+                        } else {
+                            AuthLogoutUIState.Error(response.message)
+                        }
+                    },
+                    onFailure = { error ->
+                        AuthLogoutUIState.Error(error.message ?: "Unknown error")
+                    }
+                )
+
+                state.copy(
+                    authLogout = tmpState
+                )
+            }
+        }
+    }
+
+    fun refreshToken(
+        authToken: String,
+        refreshToken: String,
+    ) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    auth = AuthUIState.Loading,
+                    authRefreshToken = AuthActionUIState.Loading
+                )
+            }
+            _uiState.update { state ->
+                var tmpStateAuth: AuthUIState = AuthUIState.Loading
+                var tmpStateAuthRefreshToken: AuthActionUIState = AuthActionUIState.Loading
+
+                runCatching {
+                    repository.postRefreshToken(
+                        RequestAuthRefreshToken(
+                            authToken = authToken,
+                            refreshToken = refreshToken,
+                        )
+                    )
+                }.fold(
+                    onSuccess = { response ->
+                        if (response.status == "success") {
+                            viewModelScope.launch {
+                                authTokenPref.saveAuthToken(response.data!!.authToken)
+                                authTokenPref.saveRefreshToken(response.data.refreshToken)
+                            }
+                            tmpStateAuth = AuthUIState.Success(response.data!!)
+                            tmpStateAuthRefreshToken = AuthActionUIState.Success(response.message)
+                        } else {
+                            tmpStateAuth = AuthUIState.Error(response.message)
+                            tmpStateAuthRefreshToken = AuthActionUIState.Error(response.message)
+                        }
+                    },
+                    onFailure = { error ->
+                        tmpStateAuth = AuthUIState.Error(error.message ?: "Unknown error")
+                        tmpStateAuthRefreshToken = AuthActionUIState.Error(error.message ?: "Unknown error")
+                    }
+                )
+
+                state.copy(
+                    auth = tmpStateAuth,
+                    authRefreshToken = tmpStateAuthRefreshToken
+                )
+            }
+        }
+    }
+
+    // Fungsi membaca DataStore menggunakan Flow Collector
+    fun loadTokenFromPreferences() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(auth = AuthUIState.Loading) }
+
+            // Combine digunakan untuk memantau perubahan pada dua Flow sekaligus
+            combine(
+                authTokenPref.getAuthToken(),
+                authTokenPref.getRefreshToken()
+            ) { authToken, refreshToken ->
+                if (authToken.isNullOrEmpty() || refreshToken.isNullOrEmpty()) {
+                    AuthUIState.Error("Token tidak tersedia")
+                } else {
+                    AuthUIState.Success(
+                        ResponseAuthLogin(
+                            authToken = authToken,
+                            refreshToken = refreshToken
+                        )
+                    )
+                }
+            }.collect { authState ->
+                // Update UI state setiap kali ada perubahan pada DataStore
+                _uiState.update { it.copy(auth = authState) }
+            }
+        }
+    }
+}

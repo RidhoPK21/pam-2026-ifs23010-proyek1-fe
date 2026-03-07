@@ -1,4 +1,4 @@
-package org.delcom.pam_p5_ifs23010
+package org.delcom.pam_proyek1_ifs23010
 
 import org.junit.Test
 

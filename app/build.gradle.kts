@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "org.delcom.pam_p5_ifs23010"
+    namespace = "org.delcom.pam_proyek1_ifs23010"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -16,7 +16,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "org.delcom.pam_p5_ifs23010"
+        applicationId = "org.delcom.pam_proyek1_ifs23010"
         minSdk = 29
         targetSdk = 36
         versionCode = 1
@@ -24,7 +24,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "BASE_URL", "\"https://pam-2026-p5-ifs23010-be.ifs23010.fun:8080/\"")
+        buildConfigField("String", "BASE_URL", "\"https://pam-2026-ifs23010-proyek1-be.ifs23010.fun:8080/\"")
     }
 
     buildTypes {
@@ -63,6 +63,7 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     // Add Library
     // ================================================
