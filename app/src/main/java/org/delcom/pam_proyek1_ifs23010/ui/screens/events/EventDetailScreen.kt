@@ -68,7 +68,7 @@ import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.AuthViewModel
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventActionUIState // Ganti import
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventUIState // Ganti import
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventViewModel // Ganti import
-import kotlinx.datetime.Clock // Perbaiki import kotlinx.datetime
+//import kotlinx.datetime.Clock // Perbaiki import kotlinx.datetime
 
 @Composable
 fun EventsDetailScreen( // Ganti nama fungsi
@@ -188,7 +188,7 @@ fun EventsDetailScreen( // Ganti nama fungsi
         when (val state = uiStateEvent.eventChangeCover) {
             is EventActionUIState.Success -> {
                 if(event != null){
-                    event!!.updatedAt = Clock.System.now().toString()
+                    event!!.updatedAt = System.currentTimeMillis().toString()
                 }
                 SuspendHelper.showSnackBar(
                     snackbarHost = snackbarHost,

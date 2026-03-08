@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Delcom Plants"
+rootProject.name = "Delcom Event"
 include(":app")
