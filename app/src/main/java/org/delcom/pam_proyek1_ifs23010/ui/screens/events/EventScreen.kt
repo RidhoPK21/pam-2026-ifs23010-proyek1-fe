@@ -53,7 +53,7 @@ import org.delcom.pam_proyek1_ifs23010.R
 import org.delcom.pam_proyek1_ifs23010.helper.ConstHelper
 import org.delcom.pam_proyek1_ifs23010.helper.RouteHelper
 import org.delcom.pam_proyek1_ifs23010.helper.ToolsHelper
-import org.delcom.pam_proyek1_ifs23010.network.events.data.ResponseEventData // Ganti Import
+import org.delcom.pam_proyek1_ifs23010.network.events.data.ResponseEventData
 import org.delcom.pam_proyek1_ifs23010.ui.components.BottomNavComponent
 import org.delcom.pam_proyek1_ifs23010.ui.components.LoadingUI
 import org.delcom.pam_proyek1_ifs23010.ui.components.TopAppBarComponent
@@ -61,9 +61,15 @@ import org.delcom.pam_proyek1_ifs23010.ui.components.TopAppBarMenuItem
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.AuthLogoutUIState
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.AuthUIState
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.AuthViewModel
-import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventViewModel // Ganti Import
-import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventsUIState // Ganti Import
-
+import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventViewModel
+import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventsUIState
+import java.util.UUID
+import androidx.compose.foundation.lazy.LazyRow // Jangan lupa tambahkan import ini di atas
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import org.delcom.pam_proyek1_ifs23010.network.events.data.DivisiEnum
 @Composable
 fun EventsScreen(
     navController: NavHostController,
@@ -85,20 +91,23 @@ fun EventsScreen(
     var authToken by remember { mutableStateOf<String?>(null) }
 
     fun fetchEventsData() {
-        isLoading = true
-        authToken = (uiStateAuth.auth as AuthUIState.Success).data.authToken
-        eventViewModel.resetAndGetAllEvents(authToken ?: "", searchQuery.text, selectedStatus, selectedDivisi)
-    }
-
-    LaunchedEffect(Unit) {
-        if (uiStateAuth.auth !is AuthUIState.Success) {
-            RouteHelper.to(navController, ConstHelper.RouteNames.Home.path, true)
-            return@LaunchedEffect
+        val authState = uiStateAuth.auth
+        if (authState is AuthUIState.Success) {
+            isLoading = true
+            authToken = authState.data.authToken
+            eventViewModel.resetAndGetAllEvents(authToken ?: "", searchQuery.text, selectedStatus, selectedDivisi)
         }
-        fetchEventsData()
     }
 
-    // Logika Pagination (Infinite Scroll)
+    LaunchedEffect(uiStateAuth.auth) {
+        val authState = uiStateAuth.auth
+        if (authState is AuthUIState.Success) {
+            fetchEventsData()
+        } else if (authState is AuthUIState.Error) {
+            RouteHelper.to(navController, ConstHelper.RouteNames.AuthLogin.path, true)
+        }
+    }
+
     val shouldLoadMore = remember {
         derivedStateOf {
             val layoutInfo = listState.layoutInfo
@@ -158,9 +167,7 @@ fun EventsScreen(
             onSearchAction = { fetchEventsData() }
         )
 
-        // Barisan Filter Chips
         Column(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-            // Row 1: Filter Status
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -180,17 +187,24 @@ fun EventsScreen(
                 }
             }
 
-            // Row 2: Filter Divisi (Contoh beberapa divisi)
-            Row(
+            LazyRow(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val divisiOptions = listOf(null to "Semua", "Humas" to "Humas", "BPH" to "BPH", "Pendidikan" to "Pendidikan")
-                divisiOptions.forEach { (key, label) ->
+                item {
                     FilterChip(
-                        selected = selectedDivisi == key,
-                        onClick = { selectedDivisi = key; fetchEventsData() },
-                        label = { Text(label) }
+                        selected = selectedDivisi == null,
+                        onClick = { selectedDivisi = null; fetchEventsData() },
+                        label = { Text("Semua Divisi") }
+                    )
+                }
+
+                // Looping dari Enum
+                items(DivisiEnum.entries) { divisi ->
+                    FilterChip(
+                        selected = selectedDivisi == divisi.fullName,
+                        onClick = { selectedDivisi = divisi.fullName; fetchEventsData() },
+                        label = { Text(divisi.shortName) } // Tampilkan nama pendek di chip
                     )
                 }
             }
@@ -225,7 +239,10 @@ fun EventsUI(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        items(events) { event ->
+        items(
+            items = events,
+            key = { it.id ?: UUID.randomUUID().toString() } // Safe key pencegah crash list
+        ) { event ->
             EventItemUI(event, onOpen)
         }
         item { Spacer(modifier = Modifier.height(80.dp)) }
@@ -243,11 +260,21 @@ fun EventItemUI(
     event: ResponseEventData,
     onOpen: (String) -> Unit
 ) {
+    // -------------------------------------------------------------
+    // PERBAIKAN: NULL-SAFE VARIABLES (Mencegah NPE Force Close)
+    // -------------------------------------------------------------
+    val safeId = event.id ?: ""
+    val safeTitle = event.title ?: "Tanpa Judul"
+    val safeDivisi = event.divisi ?: "-"
+    val safeTanggal = event.tanggalPelaksanaan ?: "-"
+    val safeUpdatedAt = event.updatedAt ?: "0"
+    val safeStatus = event.status ?: "belum terlaksana"
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
-            .clickable { onOpen(event.id) },
+            .clickable { onOpen(safeId) },
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -258,8 +285,8 @@ fun EventItemUI(
         ) {
 
             AsyncImage(
-                model = ToolsHelper.getTodoImage(event.id, event.updatedAt), // Asumsi helper tidak berubah nama
-                contentDescription = event.title,
+                model = ToolsHelper.getEventImage(safeId, safeUpdatedAt),
+                contentDescription = safeTitle,
                 placeholder = painterResource(R.drawable.img_placeholder),
                 error = painterResource(R.drawable.img_placeholder),
                 modifier = Modifier
@@ -271,14 +298,12 @@ fun EventItemUI(
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                // ROW UNTUK JUDUL DAN DIVISI
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Judul Kegiatan
                     Text(
-                        text = event.title,
+                        text = safeTitle,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f),
@@ -288,9 +313,8 @@ fun EventItemUI(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    // Label Divisi
                     Text(
-                        text = event.divisi,
+                        text = safeDivisi,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -302,7 +326,7 @@ fun EventItemUI(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = event.tanggalPelaksanaan,
+                    text = safeTanggal,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -311,14 +335,13 @@ fun EventItemUI(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Label Status
-                val statusColor = when (event.status.lowercase()) {
+                val statusColor = when (safeStatus.lowercase()) {
                     "sudah terlaksana" -> MaterialTheme.colorScheme.secondaryContainer
                     "dibatalkan" -> MaterialTheme.colorScheme.errorContainer
                     else -> MaterialTheme.colorScheme.tertiaryContainer
                 }
 
-                val statusTextColor = when (event.status.lowercase()) {
+                val statusTextColor = when (safeStatus.lowercase()) {
                     "sudah terlaksana" -> MaterialTheme.colorScheme.onSecondaryContainer
                     "dibatalkan" -> MaterialTheme.colorScheme.onErrorContainer
                     else -> MaterialTheme.colorScheme.onTertiaryContainer
@@ -332,7 +355,7 @@ fun EventItemUI(
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = event.status.uppercase(),
+                        text = safeStatus.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = statusTextColor

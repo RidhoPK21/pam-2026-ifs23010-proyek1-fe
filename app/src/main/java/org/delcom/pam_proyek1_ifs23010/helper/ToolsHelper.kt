@@ -11,8 +11,8 @@ import org.delcom.pam_proyek1_ifs23010.BuildConfig
 import java.io.File
 
 object ToolsHelper {
-    fun getTodoImage(todoId: String, t: String = "0"): String{
-        return "${BuildConfig.BASE_URL}images/todos/${todoId}?t=${t}"
+    fun getEventImage(eventId: String, t: String = "0"): String{
+        return "${BuildConfig.BASE_URL}images/events/${eventId}?t=${t}"
     }
 
     fun getUserImage(userId: String, t: String = "0"): String{

@@ -1,4 +1,4 @@
-package org.delcom.pam_proyek1_ifs23010.ui.screens.events // Ubah package
+package org.delcom.pam_proyek1_ifs23010.ui.screens.events
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +17,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,15 +51,16 @@ import org.delcom.pam_proyek1_ifs23010.helper.ConstHelper
 import org.delcom.pam_proyek1_ifs23010.helper.RouteHelper
 import org.delcom.pam_proyek1_ifs23010.helper.SuspendHelper
 import org.delcom.pam_proyek1_ifs23010.helper.SuspendHelper.SnackBarType
-import org.delcom.pam_proyek1_ifs23010.network.events.data.ResponseEventData // Ganti import Todo ke Event
+import org.delcom.pam_proyek1_ifs23010.network.events.data.DivisiEnum // Tambahkan import Enum
+import org.delcom.pam_proyek1_ifs23010.network.events.data.ResponseEventData
 import org.delcom.pam_proyek1_ifs23010.ui.components.BottomNavComponent
 import org.delcom.pam_proyek1_ifs23010.ui.components.LoadingUI
 import org.delcom.pam_proyek1_ifs23010.ui.components.TopAppBarComponent
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.AuthUIState
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.AuthViewModel
-import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventActionUIState // Ganti import
-import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventUIState // Ganti import
-import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventViewModel // Ganti import
+import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventActionUIState
+import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventUIState
+import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventViewModel
 
 @Composable
 fun EventsEditScreen(
@@ -198,6 +203,7 @@ fun EventsEditScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventsEditUI(
     event: ResponseEventData,
@@ -213,13 +219,17 @@ fun EventsEditUI(
 ) {
     val alertState = remember { mutableStateOf(AlertState()) }
 
-    var dataTitle by remember { mutableStateOf(event.title) }
-    var dataDescription by remember { mutableStateOf(event.description) }
-    var dataTanggal by remember { mutableStateOf(event.tanggalPelaksanaan) }
-    var dataTempat by remember { mutableStateOf(event.tempatPelaksanaan) }
-    var dataBiaya by remember { mutableStateOf(event.estimasiBiaya) }
-    var dataDivisi by remember { mutableStateOf(event.divisi) }
-    var dataStatus by remember { mutableStateOf(event.status) }
+    // PERBAIKAN NULL-SAFE KETIKA MENGAMBIL DATA AWAL DARI EVENT
+    var dataTitle by remember { mutableStateOf(event.title ?: "") }
+    var dataDescription by remember { mutableStateOf(event.description ?: "") }
+    var dataTanggal by remember { mutableStateOf(event.tanggalPelaksanaan ?: "") }
+    var dataTempat by remember { mutableStateOf(event.tempatPelaksanaan ?: "") }
+    var dataBiaya by remember { mutableStateOf(event.estimasiBiaya ?: "") }
+    var dataDivisi by remember { mutableStateOf(event.divisi ?: "") }
+    var dataStatus by remember { mutableStateOf(event.status ?: "belum terlaksana") }
+
+    // State untuk Dropdown
+    var expandedDivisi by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -298,14 +308,39 @@ fun EventsEditUI(
             ),
         )
 
-        // Divisi
-        OutlinedTextField(
-            value = dataDivisi,
-            onValueChange = { dataDivisi = it },
-            label = { Text(text = "Divisi Penanggung Jawab") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-        )
+        // Divisi (Diubah menggunakan Dropdown)
+        ExposedDropdownMenuBox(
+            expanded = expandedDivisi,
+            onExpandedChange = { expandedDivisi = !expandedDivisi },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = dataDivisi,
+                onValueChange = {}, // Kosong karena diisi melalui opsi
+                readOnly = true,    // Hanya bisa dipilih
+                label = { Text("Divisi Penanggung Jawab") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDivisi) },
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+            )
+
+            ExposedDropdownMenu(
+                expanded = expandedDivisi,
+                onDismissRequest = { expandedDivisi = false }
+            ) {
+                DivisiEnum.getAllFullNames().forEach { divisiName ->
+                    DropdownMenuItem(
+                        text = { Text(text = divisiName) },
+                        onClick = {
+                            dataDivisi = divisiName
+                            expandedDivisi = false
+                        }
+                    )
+                }
+            }
+        }
 
         // Pilihan Status
         Text(
@@ -314,29 +349,33 @@ fun EventsEditUI(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(top = 8.dp)
         )
-        Row(
+        // UBAH: Menggunakan Column agar pilihan berbaris ke bawah
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(4.dp) // Memberi jarak antar pilihan
         ) {
             val statusOptions = listOf("belum terlaksana", "sudah terlaksana", "dibatalkan")
             statusOptions.forEach { option ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { dataStatus = option }
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { dataStatus = option }
+                        .padding(vertical = 4.dp) // Memberi area klik yang lebih luas
                 ) {
                     RadioButton(
                         selected = (dataStatus == option),
                         onClick = { dataStatus = option }
                     )
                     Text(
-                        text = option.capitalize(),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(end = 4.dp)
+                        // Menggunakan replaceFirstChar untuk kapitalisasi (lebih modern dari capitalize())
+                        text = option.replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.bodyMedium, // Sedikit diperbesar agar mudah dibaca
+                        modifier = Modifier.padding(start = 8.dp)
                     )
                 }
             }
         }
-
         Spacer(modifier = Modifier.height(80.dp))
     }
 

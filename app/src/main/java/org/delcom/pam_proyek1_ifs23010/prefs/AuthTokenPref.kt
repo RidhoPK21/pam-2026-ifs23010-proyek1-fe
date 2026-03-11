@@ -21,7 +21,27 @@ class AuthTokenPref(private val context: Context) {
     }
 
     // ==========================================
-    // AUTH TOKEN
+    // SIMPAN / HAPUS KEDUA TOKEN SEKALIGUS (FIX RACE CONDITION)
+    // ==========================================
+
+    // Menyimpan kedua token sekaligus dalam satu transaksi DataStore
+    suspend fun saveTokens(authToken: String, refreshToken: String) {
+        context.dataStore.edit { preferences ->
+            preferences[AUTH_TOKEN_KEY] = authToken
+            preferences[REFRESH_TOKEN_KEY] = refreshToken
+        }
+    }
+
+    // Menghapus kedua token sekaligus dalam satu transaksi DataStore
+    suspend fun clearTokens() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(AUTH_TOKEN_KEY)
+            preferences.remove(REFRESH_TOKEN_KEY)
+        }
+    }
+
+    // ==========================================
+    // AUTH TOKEN (SINGLE)
     // ==========================================
 
     // Menyimpan token (Suspend function karena proses asynchronous)
@@ -46,7 +66,7 @@ class AuthTokenPref(private val context: Context) {
     }
 
     // ==========================================
-    // REFRESH TOKEN
+    // REFRESH TOKEN (SINGLE)
     // ==========================================
 
     // Menyimpan token

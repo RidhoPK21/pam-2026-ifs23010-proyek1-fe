@@ -1,4 +1,4 @@
-package org.delcom.pam_proyek1_ifs23010.ui.screens.events // Ubah nama package
+package org.delcom.pam_proyek1_ifs23010.ui.screens.events
 
 import android.content.Context
 import android.net.Uri
@@ -55,7 +55,7 @@ import org.delcom.pam_proyek1_ifs23010.helper.SuspendHelper
 import org.delcom.pam_proyek1_ifs23010.helper.SuspendHelper.SnackBarType
 import org.delcom.pam_proyek1_ifs23010.helper.ToolsHelper
 import org.delcom.pam_proyek1_ifs23010.helper.ToolsHelper.uriToMultipart
-import org.delcom.pam_proyek1_ifs23010.network.events.data.ResponseEventData // Ganti import Todo ke Event
+import org.delcom.pam_proyek1_ifs23010.network.events.data.ResponseEventData
 import org.delcom.pam_proyek1_ifs23010.ui.components.BottomDialog
 import org.delcom.pam_proyek1_ifs23010.ui.components.BottomDialogType
 import org.delcom.pam_proyek1_ifs23010.ui.components.BottomNavComponent
@@ -65,27 +65,24 @@ import org.delcom.pam_proyek1_ifs23010.ui.components.TopAppBarMenuItem
 import org.delcom.pam_proyek1_ifs23010.ui.theme.DelcomTheme
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.AuthUIState
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.AuthViewModel
-import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventActionUIState // Ganti import
-import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventUIState // Ganti import
-import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventViewModel // Ganti import
-//import kotlinx.datetime.Clock // Perbaiki import kotlinx.datetime
+import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventActionUIState
+import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventUIState
+import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventViewModel
 
 @Composable
-fun EventsDetailScreen( // Ganti nama fungsi
+fun EventsDetailScreen(
     navController: NavHostController,
     snackbarHost: SnackbarHostState,
     authViewModel: AuthViewModel,
-    eventViewModel: EventViewModel, // Ganti viewmodel
-    eventId: String // Ganti argumen
+    eventViewModel: EventViewModel,
+    eventId: String
 ) {
-    // Ambil data dari viewmodel
     val uiStateEvent by eventViewModel.uiState.collectAsState()
     val uiStateAuth by authViewModel.uiState.collectAsState()
 
     var isLoading by remember { mutableStateOf(false) }
     var isConfirmDelete by remember { mutableStateOf(false) }
 
-    // Muat data
     var event by remember { mutableStateOf<ResponseEventData?>(null) }
     val authToken = remember { mutableStateOf<String?>(null) }
 
@@ -103,7 +100,6 @@ fun EventsDetailScreen( // Ganti nama fungsi
 
         authToken.value = (uiStateAuth.auth as AuthUIState.Success).data.authToken
 
-        // Reset status action
         uiStateEvent.eventDelete = EventActionUIState.Loading
         uiStateEvent.eventChangeCover = EventActionUIState.Loading
         uiStateEvent.event = EventUIState.Loading
@@ -111,7 +107,6 @@ fun EventsDetailScreen( // Ganti nama fungsi
         eventViewModel.getEventById(authToken.value!!, eventId)
     }
 
-    // Picu ulang ketika data berubah
     LaunchedEffect(uiStateEvent.event) {
         if (uiStateEvent.event !is EventUIState.Loading) {
             if (uiStateEvent.event is EventUIState.Success) {
@@ -144,7 +139,7 @@ fun EventsDetailScreen( // Ganti nama fungsi
                 )
                 RouteHelper.to(
                     navController,
-                    ConstHelper.RouteNames.Events.path, // Kembali ke list events
+                    ConstHelper.RouteNames.Events.path,
                     true
                 )
                 uiStateEvent.event = EventUIState.Loading
@@ -211,13 +206,14 @@ fun EventsDetailScreen( // Ganti nama fungsi
         }
     }
 
-    // Tampilkan halaman loading
     if (isLoading || event == null) {
         LoadingUI()
         return
     }
 
-    // Menu item details
+    // NULL SAFE ID
+    val safeEventId = event?.id ?: ""
+
     val detailMenuItems = listOf(
         TopAppBarMenuItem(
             text = "Ubah Data",
@@ -226,8 +222,7 @@ fun EventsDetailScreen( // Ganti nama fungsi
             onClick = {
                 RouteHelper.to(
                     navController,
-                    ConstHelper.RouteNames.EventsEdit.path
-                        .replace("{eventId}", event!!.id),
+                    ConstHelper.RouteNames.EventsEdit.path.replace("{eventId}", safeEventId),
                 )
             }
         ),
@@ -247,24 +242,20 @@ fun EventsDetailScreen( // Ganti nama fungsi
             .background(MaterialTheme.colorScheme.background)
     )
     {
-        // Top App Bar
         TopAppBarComponent(
             navController = navController,
             title = "Detail Kegiatan",
             showBackButton = true,
             customMenuItems = detailMenuItems
         )
-        // Content
         Box(
             modifier = Modifier
                 .weight(1f)
         ) {
-            // Content UI
             EventsDetailUI(
                 event = event!!,
                 onChangeCover = ::onChangeCover,
             )
-            // Bottom Dialog to Confirmation Delete
             BottomDialog(
                 type = BottomDialogType.ERROR,
                 show = isConfirmDelete,
@@ -279,7 +270,6 @@ fun EventsDetailScreen( // Ganti nama fungsi
                 destructiveAction = true
             )
         }
-        // Bottom Nav
         BottomNavComponent(navController = navController)
     }
 }
@@ -291,6 +281,17 @@ fun EventsDetailUI(
 ) {
     var dataFile by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current
+
+    // PERBAIKAN: VARIABEL NULL-SAFE
+    val safeId = event.id ?: ""
+    val safeTitle = event.title ?: "Tanpa Judul"
+    val safeStatus = event.status ?: "belum terlaksana"
+    val safeDivisi = event.divisi ?: "-"
+    val safeTanggal = event.tanggalPelaksanaan ?: "-"
+    val safeTempat = event.tempatPelaksanaan ?: "-"
+    val safeEstimasi = event.estimasiBiaya ?: "0"
+    val safeDeskripsi = event.description ?: "-"
+    val safeUpdatedAt = event.updatedAt ?: "0"
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -305,7 +306,6 @@ fun EventsDetailUI(
             .verticalScroll(rememberScrollState())
     )
     {
-        // Gambar
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -316,7 +316,6 @@ fun EventsDetailUI(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Cover Image
                 Box(
                     modifier = Modifier
                         .size(150.dp)
@@ -331,8 +330,9 @@ fun EventsDetailUI(
                         },
                     contentAlignment = Alignment.Center
                 ) {
+                    // PERBAIKAN: Gunakan fungsi gambar yang sudah diperbarui dan variabel safe
                     AsyncImage(
-                        model = dataFile ?: ToolsHelper.getTodoImage(event.id, event.updatedAt), // Asumsi helper getTodoImage belum diganti namanya
+                        model = dataFile ?: ToolsHelper.getEventImage(safeId, safeUpdatedAt),
                         contentDescription = "Cover Kegiatan",
                         placeholder = painterResource(R.drawable.img_placeholder),
                         error = painterResource(R.drawable.img_placeholder),
@@ -343,7 +343,6 @@ fun EventsDetailUI(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Text di bawah gambar
                 Text(
                     text = if (dataFile == null)
                         "Sentuh cover untuk mengubah"
@@ -356,7 +355,6 @@ fun EventsDetailUI(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Tombol Simpan muncul jika ada gambar baru
                 if (dataFile != null) {
                     Button(
                         onClick = {
@@ -383,7 +381,7 @@ fun EventsDetailUI(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = event.title,
+                text = safeTitle,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -396,14 +394,14 @@ fun EventsDetailUI(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Label Status
-                val statusColor = when (event.status.lowercase()) {
+                // PERBAIKAN: Null-safe checking untuk warna dan text
+                val statusColor = when (safeStatus.lowercase()) {
                     "sudah terlaksana" -> MaterialTheme.colorScheme.secondaryContainer
                     "dibatalkan" -> MaterialTheme.colorScheme.errorContainer
                     else -> MaterialTheme.colorScheme.tertiaryContainer
                 }
 
-                val statusTextColor = when (event.status.lowercase()) {
+                val statusTextColor = when (safeStatus.lowercase()) {
                     "sudah terlaksana" -> MaterialTheme.colorScheme.onSecondaryContainer
                     "dibatalkan" -> MaterialTheme.colorScheme.onErrorContainer
                     else -> MaterialTheme.colorScheme.onTertiaryContainer
@@ -417,7 +415,7 @@ fun EventsDetailUI(
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        text = event.status.uppercase(),
+                        text = safeStatus.uppercase(),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = statusTextColor
@@ -426,7 +424,6 @@ fun EventsDetailUI(
             }
         }
 
-        // Card Informasi Detail Kegiatan
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -441,62 +438,57 @@ fun EventsDetailUI(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                // Tanggal
                 Text(
                     text = "Tanggal Pelaksanaan",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = event.tanggalPelaksanaan.ifEmpty { "-" },
+                    text = safeTanggal.ifEmpty { "-" },
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
-                // Tempat
                 Text(
                     text = "Tempat Pelaksanaan",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = event.tempatPelaksanaan.ifEmpty { "-" },
+                    text = safeTempat.ifEmpty { "-" },
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
-                // Biaya
                 Text(
                     text = "Estimasi Biaya",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Rp ${event.estimasiBiaya.ifEmpty { "0" }}",
+                    text = "Rp ${safeEstimasi.ifEmpty { "0" }}",
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
-                // Divisi
                 Text(
                     text = "Divisi Penanggung Jawab",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = event.divisi.ifEmpty { "-" },
+                    text = safeDivisi.ifEmpty { "-" },
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // Deskripsi
                 Text(
                     text = "Deskripsi Kegiatan",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = event.description,
+                    text = safeDeskripsi.ifEmpty { "-" },
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 4.dp)
                 )

@@ -99,10 +99,8 @@ class AuthViewModel @Inject constructor(
             val tmpState = result.fold(
                 onSuccess = { response ->
                     if (response.status == "success" && response.data != null) {
-                        // Simpan token SEBELUM mengembalikan state Success
-                        // Asumsi saveAuthToken dan saveRefreshToken adalah fungsi suspend
-                        authTokenPref.saveAuthToken(response.data.authToken)
-                        authTokenPref.saveRefreshToken(response.data.refreshToken)
+                        // GANTI DENGAN INI:
+                        authTokenPref.saveTokens(response.data.authToken, response.data.refreshToken)
 
                         AuthUIState.Success(response.data)
                     } else {
@@ -120,9 +118,7 @@ class AuthViewModel @Inject constructor(
 
     fun logout(authToken: String) {
         viewModelScope.launch {
-            // Hapus token
-            authTokenPref.clearAuthToken()
-            authTokenPref.clearRefreshToken()
+            authTokenPref.clearTokens()
 
             _uiState.update { it.copy(authLogout = AuthLogoutUIState.Loading) }
 
@@ -167,9 +163,8 @@ class AuthViewModel @Inject constructor(
             }.fold(
                 onSuccess = { response ->
                     if (response.status == "success" && response.data != null) {
-                        // Simpan token SEBELUM mengembalikan state Success
-                        authTokenPref.saveAuthToken(response.data.authToken)
-                        authTokenPref.saveRefreshToken(response.data.refreshToken)
+                        // GANTI DENGAN INI:
+                        authTokenPref.saveTokens(response.data.authToken, response.data.refreshToken)
 
                         tmpStateAuth = AuthUIState.Success(response.data)
                         tmpStateAuthRefreshToken = AuthActionUIState.Success(response.message)
