@@ -8,11 +8,13 @@ import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -24,11 +26,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.delcom.pam_proyek1_ifs23010.R
+import org.delcom.pam_proyek1_ifs23010.ui.theme.DelcomTheme
 
 @Composable
 fun RippleLoading(
     modifier: Modifier = Modifier,
-    color: Color = Color(0xFF009FFF),
+    color: Color = MaterialTheme.colorScheme.primary, // PERBAIKAN 1: Menggunakan warna Primary Tema
     imageSize: Dp = 76.dp,
     circleSize: Dp = 36.dp,
     maxSize: Dp = 150.dp,
@@ -37,7 +40,6 @@ fun RippleLoading(
     val density = LocalDensity.current
     val circleSizePx = with(density) { circleSize.toPx() }
     val maxSizePx = with(density) { maxSize.toPx() }
-//    val midSizePx = circleSizePx * 2.1875f // ~70px if circleSize is 32px
 
     Box(
         modifier = modifier.size(maxSize + 40.dp),
@@ -107,7 +109,10 @@ private fun Float.toDp(): Dp = with(LocalDensity.current) { this@toDp.toDp() }
 @Composable
 fun LoadingUI() {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            // PERBAIKAN 2: Efek latar belakang transparan (dim) saat loading menimpa layar lain
+            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.85f)),
         contentAlignment = Alignment.Center
     ) {
         RippleLoading()
@@ -117,5 +122,7 @@ fun LoadingUI() {
 @Preview(showBackground = true)
 @Composable
 fun PreviewLoadingUI() {
-    LoadingUI()
+    DelcomTheme {
+        LoadingUI()
+    }
 }

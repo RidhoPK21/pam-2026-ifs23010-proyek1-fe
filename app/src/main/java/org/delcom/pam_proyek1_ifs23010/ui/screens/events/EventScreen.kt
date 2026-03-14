@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -53,6 +56,7 @@ import org.delcom.pam_proyek1_ifs23010.R
 import org.delcom.pam_proyek1_ifs23010.helper.ConstHelper
 import org.delcom.pam_proyek1_ifs23010.helper.RouteHelper
 import org.delcom.pam_proyek1_ifs23010.helper.ToolsHelper
+import org.delcom.pam_proyek1_ifs23010.network.events.data.DivisiEnum
 import org.delcom.pam_proyek1_ifs23010.network.events.data.ResponseEventData
 import org.delcom.pam_proyek1_ifs23010.ui.components.BottomNavComponent
 import org.delcom.pam_proyek1_ifs23010.ui.components.LoadingUI
@@ -64,12 +68,7 @@ import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.AuthViewModel
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventViewModel
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventsUIState
 import java.util.UUID
-import androidx.compose.foundation.lazy.LazyRow // Jangan lupa tambahkan import ini di atas
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import org.delcom.pam_proyek1_ifs23010.network.events.data.DivisiEnum
+
 @Composable
 fun EventsScreen(
     navController: NavHostController,
@@ -167,44 +166,50 @@ fun EventsScreen(
             onSearchAction = { fetchEventsData() }
         )
 
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        // Filter Area
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Filter Status
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val statuses = listOf(
-                    null to "Semua",
+                    null to "Semua Status",
                     "belum terlaksana" to "Belum",
                     "sudah terlaksana" to "Selesai",
                     "dibatalkan" to "Batal"
                 )
-                statuses.forEach { (key, label) ->
+                items(statuses) { (key, label) ->
                     FilterChip(
                         selected = selectedStatus == key,
                         onClick = { selectedStatus = key; fetchEventsData() },
-                        label = { Text(label) }
+                        label = { Text(label) },
+                        shape = RoundedCornerShape(50)
                     )
                 }
             }
 
+            // Filter Divisi
             LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
                     FilterChip(
                         selected = selectedDivisi == null,
                         onClick = { selectedDivisi = null; fetchEventsData() },
-                        label = { Text("Semua Divisi") }
+                        label = { Text("Semua Divisi") },
+                        shape = RoundedCornerShape(50)
                     )
                 }
-
-                // Looping dari Enum
                 items(DivisiEnum.entries) { divisi ->
                     FilterChip(
                         selected = selectedDivisi == divisi.fullName,
                         onClick = { selectedDivisi = divisi.fullName; fetchEventsData() },
-                        label = { Text(divisi.shortName) } // Tampilkan nama pendek di chip
+                        label = { Text(divisi.shortName) },
+                        shape = RoundedCornerShape(50)
                     )
                 }
             }
@@ -213,10 +218,14 @@ fun EventsScreen(
         Box(modifier = Modifier.weight(1f)) {
             EventsUI(events = events, onOpen = { id -> RouteHelper.to(navController, "events/$id") }, listState = listState)
 
+            // FAB (Floating Action Button)
             Box(modifier = Modifier.fillMaxSize()) {
                 FloatingActionButton(
                     onClick = { RouteHelper.to(navController, ConstHelper.RouteNames.EventsAdd.path) },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(24.dp),
+                    shape = RoundedCornerShape(16.dp), // Bentuk modern (squircle)
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
@@ -234,23 +243,38 @@ fun EventsUI(
     onOpen: (String) -> Unit,
     listState: LazyListState
 ) {
-    LazyColumn(
-        state = listState,
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        items(
-            items = events,
-            key = { it.id ?: UUID.randomUUID().toString() } // Safe key pencegah crash list
-        ) { event ->
-            EventItemUI(event, onOpen)
-        }
-        item { Spacer(modifier = Modifier.height(80.dp)) }
-    }
-
     if (events.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = "Tidak ada kegiatan!", style = MaterialTheme.typography.bodyMedium)
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Inbox,
+                contentDescription = "Kosong",
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Belum ada kegiatan ditemukan.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    } else {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 100.dp), // Ruang bawah untuk FAB
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            items(
+                items = events,
+                key = { it.id ?: UUID.randomUUID().toString() }
+            ) { event ->
+                EventItemUI(event, onOpen)
+            }
         }
     }
 }
@@ -260,9 +284,6 @@ fun EventItemUI(
     event: ResponseEventData,
     onOpen: (String) -> Unit
 ) {
-    // -------------------------------------------------------------
-    // PERBAIKAN: NULL-SAFE VARIABLES (Mencegah NPE Force Close)
-    // -------------------------------------------------------------
     val safeId = event.id ?: ""
     val safeTitle = event.title ?: "Tanpa Judul"
     val safeDivisi = event.divisi ?: "-"
@@ -273,30 +294,35 @@ fun EventItemUI(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 6.dp)
             .clickable { onOpen(safeId) },
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(4.dp),
+        shape = RoundedCornerShape(16.dp), // Lebih melengkung
+        elevation = CardDefaults.cardElevation(2.dp), // Bayangan lebih halus
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp), // Padding dalam diperbesar
             verticalAlignment = Alignment.CenterVertically
         ) {
 
+            // Gambar Cover
             AsyncImage(
                 model = ToolsHelper.getEventImage(safeId, safeUpdatedAt),
                 contentDescription = safeTitle,
                 placeholder = painterResource(R.drawable.img_placeholder),
                 error = painterResource(R.drawable.img_placeholder),
                 modifier = Modifier
-                    .size(70.dp)
-                    .clip(MaterialTheme.shapes.medium),
+                    .size(80.dp) // Sedikit lebih besar
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant), // Background jika gambar gagal muat
                 contentScale = ContentScale.Crop
             )
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
+            // Info Teks
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -306,6 +332,7 @@ fun EventItemUI(
                         text = safeTitle,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -315,7 +342,7 @@ fun EventItemUI(
 
                     Text(
                         text = safeDivisi,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
                         maxLines = 1,
@@ -333,7 +360,7 @@ fun EventItemUI(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 val statusColor = when (safeStatus.lowercase()) {
                     "sudah terlaksana" -> MaterialTheme.colorScheme.secondaryContainer
@@ -352,12 +379,12 @@ fun EventItemUI(
                     modifier = Modifier
                         .clip(RoundedCornerShape(50))
                         .background(statusColor)
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = safeStatus.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         color = statusTextColor
                     )
                 }

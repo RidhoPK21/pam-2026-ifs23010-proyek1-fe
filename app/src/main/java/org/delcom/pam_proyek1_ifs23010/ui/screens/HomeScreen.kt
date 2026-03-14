@@ -6,19 +6,29 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,18 +57,18 @@ import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.AuthActionUIState
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.AuthLogoutUIState
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.AuthUIState
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.AuthViewModel
-import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventViewModel // Ganti import Todo ke Event
+import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.EventViewModel
+import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.ProfileUIState
 import org.delcom.pam_proyek1_ifs23010.ui.viewmodels.StatsUIState
 
 @Composable
 fun HomeScreen(
     navController: NavHostController,
     authViewModel: AuthViewModel,
-    eventViewModel: EventViewModel // Ganti parameter TodoViewModel ke EventViewModel
+    eventViewModel: EventViewModel
 ) {
-    // Ambil data dari viewmodel
     val uiStateAuth by authViewModel.uiState.collectAsState()
-    val uiStateEvent by eventViewModel.uiState.collectAsState() // Ganti variabel
+    val uiStateEvent by eventViewModel.uiState.collectAsState()
 
     var isLoading by remember { mutableStateOf(false) }
     var isFreshToken by remember { mutableStateOf(false) }
@@ -73,10 +83,10 @@ fun HomeScreen(
         authViewModel.loadTokenFromPreferences()
     }
 
-    // Ambil data statistik saat token tersedia
     LaunchedEffect(authToken) {
         authToken?.let {
-            eventViewModel.getEventStats(it) // Ganti pemanggilan fungsi ke getEventStats
+            eventViewModel.getEventStats(it)
+            eventViewModel.getProfile(it) // Fetch user profile for the greeting
         }
     }
 
@@ -120,7 +130,6 @@ fun HomeScreen(
         return
     }
 
-    // Menu Top App Bar
     val menuItems = listOf(
         TopAppBarMenuItem(text = "Profile", icon = Icons.Filled.Person, route = ConstHelper.RouteNames.Profile.path),
         TopAppBarMenuItem(text = "Logout", icon = Icons.AutoMirrored.Filled.Logout, route = null, onClick = { onLogout(authToken ?: "") })
@@ -135,102 +144,160 @@ fun HomeScreen(
             showBackButton = false,
             customMenuItems = menuItems
         )
-        // Content
         Box(
             modifier = Modifier.weight(1f)
         ) {
-            HomeUI(statsState = uiStateEvent.stats) // Ganti variabel stats
+            HomeUI(
+                statsState = uiStateEvent.stats,
+                profileState = uiStateEvent.profile,
+                onNavigateToAdd = { RouteHelper.to(navController, ConstHelper.RouteNames.EventsAdd.path) },
+                onNavigateToEvents = { RouteHelper.to(navController, ConstHelper.RouteNames.Events.path) }
+            )
         }
         BottomNavComponent(navController = navController)
     }
 }
 
 @Composable
-fun HomeUI(statsState: StatsUIState) {
+fun HomeUI(
+    statsState: StatsUIState,
+    profileState: ProfileUIState,
+    onNavigateToAdd: () -> Unit,
+    onNavigateToEvents: () -> Unit
+) {
+    val scrollState = rememberScrollState()
+
+    val userName = when (profileState) {
+        is ProfileUIState.Success -> profileState.data.name
+        else -> "Pengurus"
+    }
+
     Column(
-        modifier = Modifier.padding(top = 16.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(16.dp)
     ) {
-        // Header App
+        // 1. SAPAAN PENGGUNA
+        Text(
+            text = "Halo, $userName! 👋",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+        Text(
+            text = "Berikut adalah ringkasan kegiatan himpunan saat ini.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+
+        // 2. KOTAK STATISTIK
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Text(
-                text = "📋 Dashboard Kegiatan", // Judul disesuaikan
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Cek kondisi status data statistik
-        when (statsState) {
-            is StatsUIState.Loading -> {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
-            is StatsUIState.Error -> {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Gagal memuat: ${statsState.message}",
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    textAlign = TextAlign.Center
+                    text = "📊 Statistik Kegiatan",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
-            }
-            is StatsUIState.Success -> {
-                // Quick Status Cards dengan Data Asli
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    // Total Kegiatan
-                    StatusCard(
-                        title = "Total",
-                        value = statsState.data.total.toString(),
-                        icon = Icons.AutoMirrored.Filled.List,
-                        modifier = Modifier.weight(1f)
-                    )
 
-                    // Belum Terlaksana
-                    StatusCard(
-                        title = "Belum",
-                        value = statsState.data.active.toString(),
-                        icon = Icons.Default.Schedule,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    // Selesai
-                    StatusCard(
-                        title = "Selesai",
-                        value = statsState.data.complete.toString(),
-                        icon = Icons.Default.CheckCircle,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    // Dibatalkan (Metrik Baru)
-                    StatusCard(
-                        title = "Batal",
-                        value = statsState.data.canceled.toString(),
-                        icon = Icons.Default.Cancel,
-                        modifier = Modifier.weight(1f)
-                    )
+                when (statsState) {
+                    is StatsUIState.Loading -> {
+                        Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    is StatsUIState.Error -> {
+                        Text(
+                            text = "Gagal memuat: ${statsState.message}",
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(16.dp)
+                        )
+                    }
+                    is StatsUIState.Success -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            StatusCard(
+                                title = "Total",
+                                value = statsState.data.total.toString(),
+                                icon = Icons.AutoMirrored.Filled.List,
+                                modifier = Modifier.weight(1f)
+                            )
+                            StatusCard(
+                                title = "Belum",
+                                value = statsState.data.active.toString(),
+                                icon = Icons.Default.Schedule,
+                                modifier = Modifier.weight(1f)
+                            )
+                            StatusCard(
+                                title = "Selesai",
+                                value = statsState.data.complete.toString(),
+                                icon = Icons.Default.CheckCircle,
+                                modifier = Modifier.weight(1f)
+                            )
+                            StatusCard(
+                                title = "Batal",
+                                value = statsState.data.canceled.toString(),
+                                icon = Icons.Default.Cancel,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // 3. TOMBOL AKSI CEPAT
+        Text(
+            text = "Aksi Cepat",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(
+                onClick = onNavigateToAdd,
+                modifier = Modifier.weight(1f).height(50.dp),
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Buat Baru", fontWeight = FontWeight.SemiBold)
+            }
+
+            Button(
+                onClick = onNavigateToEvents,
+                modifier = Modifier.weight(1f).height(50.dp),
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                )
+            ) {
+                Text("Daftar Kegiatan", fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(20.dp))
+            }
+        }
+
+        Spacer(modifier = Modifier.height(80.dp)) // Spasi untuk Bottom Nav
     }
 }
 
@@ -238,6 +305,11 @@ fun HomeUI(statsState: StatsUIState) {
 @Composable
 fun PreviewHomeUI() {
     DelcomTheme {
-        HomeUI(statsState = StatsUIState.Loading)
+        HomeUI(
+            statsState = StatsUIState.Loading,
+            profileState = ProfileUIState.Loading,
+            onNavigateToAdd = {},
+            onNavigateToEvents = {}
+        )
     }
 }

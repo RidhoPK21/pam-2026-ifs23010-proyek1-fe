@@ -11,17 +11,28 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -39,10 +50,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import org.delcom.pam_proyek1_ifs23010.helper.AlertHelper
 import org.delcom.pam_proyek1_ifs23010.helper.AlertState
@@ -51,7 +66,7 @@ import org.delcom.pam_proyek1_ifs23010.helper.ConstHelper
 import org.delcom.pam_proyek1_ifs23010.helper.RouteHelper
 import org.delcom.pam_proyek1_ifs23010.helper.SuspendHelper
 import org.delcom.pam_proyek1_ifs23010.helper.SuspendHelper.SnackBarType
-import org.delcom.pam_proyek1_ifs23010.network.events.data.DivisiEnum // Tambahkan import Enum
+import org.delcom.pam_proyek1_ifs23010.network.events.data.DivisiEnum
 import org.delcom.pam_proyek1_ifs23010.network.events.data.ResponseEventData
 import org.delcom.pam_proyek1_ifs23010.ui.components.BottomNavComponent
 import org.delcom.pam_proyek1_ifs23010.ui.components.LoadingUI
@@ -70,13 +85,10 @@ fun EventsEditScreen(
     eventViewModel: EventViewModel,
     eventId: String
 ) {
-    // Ambil data dari viewmodel
     val uiStateAuth by authViewModel.uiState.collectAsState()
     val uiStateEvent by eventViewModel.uiState.collectAsState()
 
     var isLoading by remember { mutableStateOf(false) }
-
-    // Muat data
     var event by remember { mutableStateOf<ResponseEventData?>(null) }
     val authToken = remember { mutableStateOf<String?>(null) }
 
@@ -84,24 +96,17 @@ fun EventsEditScreen(
         isLoading = true
 
         if(uiStateAuth.auth !is AuthUIState.Success){
-            RouteHelper.to(
-                navController,
-                ConstHelper.RouteNames.Home.path,
-                true
-            )
+            RouteHelper.to(navController, ConstHelper.RouteNames.Home.path, true)
             return@LaunchedEffect
         }
 
         authToken.value = (uiStateAuth.auth as AuthUIState.Success).data.authToken
-
         uiStateEvent.event = EventUIState.Loading
         uiStateEvent.eventChange = EventActionUIState.Loading
 
-        // Request data kegiatan by ID
         eventViewModel.getEventById(authToken.value!!, eventId)
     }
 
-    // Picu ulang ketika data kegiatan berubah
     LaunchedEffect(uiStateEvent.event) {
         if (uiStateEvent.event !is EventUIState.Loading) {
             if (uiStateEvent.event is EventUIState.Success) {
@@ -114,7 +119,6 @@ fun EventsEditScreen(
         }
     }
 
-    // Simpan perubahan data
     fun onSave(
         title: String,
         description: String,
@@ -142,36 +146,23 @@ fun EventsEditScreen(
     LaunchedEffect(uiStateEvent.eventChange) {
         when (val state = uiStateEvent.eventChange) {
             is EventActionUIState.Success -> {
-                SuspendHelper.showSnackBar(
-                    snackbarHost = snackbarHost,
-                    type = SnackBarType.SUCCESS,
-                    message = state.message
-                )
+                SuspendHelper.showSnackBar(snackbarHost, SnackBarType.SUCCESS, state.message)
                 RouteHelper.to(
                     navController = navController,
-                    destination = ConstHelper.RouteNames.EventsDetail.path
-                        .replace("{eventId}", eventId),
-                    popUpTo = ConstHelper.RouteNames.EventsDetail.path
-                        .replace("{eventId}", eventId),
+                    destination = ConstHelper.RouteNames.EventsDetail.path.replace("{eventId}", eventId),
+                    popUpTo = ConstHelper.RouteNames.EventsDetail.path.replace("{eventId}", eventId),
                     removeBackStack = true
                 )
                 isLoading = false
             }
-
             is EventActionUIState.Error -> {
-                SuspendHelper.showSnackBar(
-                    snackbarHost = snackbarHost,
-                    type = SnackBarType.ERROR,
-                    message = state.message
-                )
+                SuspendHelper.showSnackBar(snackbarHost, SnackBarType.ERROR, state.message)
                 isLoading = false
             }
-
             else -> {}
         }
     }
 
-    // Tampilkan halaman loading
     if (isLoading || event == null) {
         LoadingUI()
         return
@@ -182,23 +173,14 @@ fun EventsEditScreen(
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Top App Bar
         TopAppBarComponent(
             navController = navController,
             title = "Ubah Data Kegiatan",
             showBackButton = true,
         )
-        // Content
-        Box(
-            modifier = Modifier
-                .weight(1f)
-        ) {
-            EventsEditUI(
-                event = event!!,
-                onSave = ::onSave
-            )
+        Box(modifier = Modifier.weight(1f)) {
+            EventsEditUI(event = event!!, onSave = ::onSave)
         }
-        // Bottom Nav
         BottomNavComponent(navController = navController)
     }
 }
@@ -207,19 +189,10 @@ fun EventsEditScreen(
 @Composable
 fun EventsEditUI(
     event: ResponseEventData,
-    onSave: (
-        String, // Title
-        String, // Description
-        String, // Status
-        String, // Tanggal
-        String, // Tempat
-        String, // Estimasi Biaya
-        String  // Divisi
-    ) -> Unit
+    onSave: (String, String, String, String, String, String, String) -> Unit
 ) {
     val alertState = remember { mutableStateOf(AlertState()) }
 
-    // PERBAIKAN NULL-SAFE KETIKA MENGAMBIL DATA AWAL DARI EVENT
     var dataTitle by remember { mutableStateOf(event.title ?: "") }
     var dataDescription by remember { mutableStateOf(event.description ?: "") }
     var dataTanggal by remember { mutableStateOf(event.tanggalPelaksanaan ?: "") }
@@ -228,7 +201,6 @@ fun EventsEditUI(
     var dataDivisi by remember { mutableStateOf(event.divisi ?: "") }
     var dataStatus by remember { mutableStateOf(event.status ?: "belum terlaksana") }
 
-    // State untuk Dropdown
     var expandedDivisi by remember { mutableStateOf(false) }
 
     Column(
@@ -236,210 +208,202 @@ fun EventsEditUI(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Title
-        OutlinedTextField(
-            value = dataTitle,
-            onValueChange = { dataTitle = it },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                cursorColor = MaterialTheme.colorScheme.primary,
-            ),
-            label = { Text(text = "Nama Kegiatan") },
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next
-            ),
-        )
-
-        // Description
-        OutlinedTextField(
-            value = dataDescription,
-            onValueChange = { dataDescription = it },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                cursorColor = MaterialTheme.colorScheme.primary,
-            ),
-            label = { Text(text = "Deskripsi Kegiatan") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next
-            ),
-            maxLines = 5,
-            minLines = 3
-        )
-
-        // Tanggal Pelaksanaan
-        OutlinedTextField(
-            value = dataTanggal,
-            onValueChange = { dataTanggal = it },
-            label = { Text(text = "Tanggal Pelaksanaan") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-        )
-
-        // Tempat Pelaksanaan
-        OutlinedTextField(
-            value = dataTempat,
-            onValueChange = { dataTempat = it },
-            label = { Text(text = "Tempat Pelaksanaan") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-        )
-
-        // Estimasi Biaya
-        OutlinedTextField(
-            value = dataBiaya,
-            onValueChange = { dataBiaya = it },
-            label = { Text(text = "Estimasi Biaya") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Next
-            ),
-        )
-
-        // Divisi (Diubah menggunakan Dropdown)
-        ExposedDropdownMenuBox(
-            expanded = expandedDivisi,
-            onExpandedChange = { expandedDivisi = !expandedDivisi },
-            modifier = Modifier.fillMaxWidth()
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(2.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            OutlinedTextField(
-                value = dataDivisi,
-                onValueChange = {}, // Kosong karena diisi melalui opsi
-                readOnly = true,    // Hanya bisa dipilih
-                label = { Text("Divisi Penanggung Jawab") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDivisi) },
-                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
-            )
-
-            ExposedDropdownMenu(
-                expanded = expandedDivisi,
-                onDismissRequest = { expandedDivisi = false }
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                DivisiEnum.getAllFullNames().forEach { divisiName ->
-                    DropdownMenuItem(
-                        text = { Text(text = divisiName) },
-                        onClick = {
-                            dataDivisi = divisiName
-                            expandedDivisi = false
-                        }
-                    )
-                }
-            }
-        }
+                Text(
+                    text = "Informasi Kegiatan",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
 
-        // Pilihan Status
-        Text(
-            text = "Status Kegiatan",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(top = 8.dp)
-        )
-        // UBAH: Menggunakan Column agar pilihan berbaris ke bawah
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp) // Memberi jarak antar pilihan
-        ) {
-            val statusOptions = listOf("belum terlaksana", "sudah terlaksana", "dibatalkan")
-            statusOptions.forEach { option ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { dataStatus = option }
-                        .padding(vertical = 4.dp) // Memberi area klik yang lebih luas
+                // Title
+                OutlinedTextField(
+                    value = dataTitle,
+                    onValueChange = { dataTitle = it },
+                    label = { Text("Nama Kegiatan") },
+                    leadingIcon = { Icon(Icons.Default.Event, contentDescription = null) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                )
+
+                // Tanggal Pelaksanaan
+                OutlinedTextField(
+                    value = dataTanggal,
+                    onValueChange = { dataTanggal = it },
+                    label = { Text("Tanggal Pelaksanaan") },
+                    leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                )
+
+                // Tempat Pelaksanaan
+                OutlinedTextField(
+                    value = dataTempat,
+                    onValueChange = { dataTempat = it },
+                    label = { Text("Tempat Pelaksanaan") },
+                    leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                )
+
+                // Estimasi Biaya
+                OutlinedTextField(
+                    value = dataBiaya,
+                    onValueChange = { dataBiaya = it },
+                    label = { Text("Estimasi Biaya (Rp)") },
+                    leadingIcon = { Icon(Icons.Default.AttachMoney, contentDescription = null) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
+                )
+
+                // Divisi (Dropdown)
+                ExposedDropdownMenuBox(
+                    expanded = expandedDivisi,
+                    onExpandedChange = { expandedDivisi = !expandedDivisi },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    RadioButton(
-                        selected = (dataStatus == option),
-                        onClick = { dataStatus = option }
+                    OutlinedTextField(
+                        value = dataDivisi,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Divisi Penanggung Jawab") },
+                        leadingIcon = { Icon(Icons.Default.Group, contentDescription = null) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDivisi) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
-                    Text(
-                        // Menggunakan replaceFirstChar untuk kapitalisasi (lebih modern dari capitalize())
-                        text = option.replaceFirstChar { it.uppercase() },
-                        style = MaterialTheme.typography.bodyMedium, // Sedikit diperbesar agar mudah dibaca
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expandedDivisi,
+                        onDismissRequest = { expandedDivisi = false }
+                    ) {
+                        DivisiEnum.getAllFullNames().forEach { divisiName ->
+                            DropdownMenuItem(
+                                text = { Text(text = divisiName) },
+                                onClick = {
+                                    dataDivisi = divisiName
+                                    expandedDivisi = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Description
+                OutlinedTextField(
+                    value = dataDescription,
+                    onValueChange = { dataDescription = it },
+                    label = { Text("Deskripsi Kegiatan") },
+                    leadingIcon = { Icon(Icons.Default.Info, contentDescription = null) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().height(120.dp),
+                    maxLines = 5,
+                    minLines = 3
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Pilihan Status Kegiatan
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(2.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Status Kegiatan",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val statusOptions = listOf("belum terlaksana", "sudah terlaksana", "dibatalkan")
+                    statusOptions.forEach { option ->
+                        val isSelected = dataStatus == option
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+                                .clickable { dataStatus = option }
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = null
+                            )
+                            Text(
+                                text = option.replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
-        Spacer(modifier = Modifier.height(80.dp))
-    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
-        // Floating Action Button
-        FloatingActionButton(
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Tombol Simpan Besar di Bawah
+        Button(
             onClick = {
                 if (dataTitle.isBlank() || dataDescription.isBlank() || dataTanggal.isBlank() ||
                     dataTempat.isBlank() || dataBiaya.isBlank() || dataDivisi.isBlank()
                 ) {
-                    AlertHelper.show(
-                        alertState,
-                        AlertType.ERROR,
-                        "Semua data wajib diisi!"
-                    )
-                    return@FloatingActionButton
+                    AlertHelper.show(alertState, AlertType.ERROR, "Semua data wajib diisi!")
+                    return@Button
                 }
-
-                onSave(
-                    dataTitle,
-                    dataDescription,
-                    dataStatus,
-                    dataTanggal,
-                    dataTempat,
-                    dataBiaya,
-                    dataDivisi
-                )
+                onSave(dataTitle, dataDescription, dataStatus, dataTanggal, dataTempat, dataBiaya, dataDivisi)
             },
             modifier = Modifier
-                .align(Alignment.BottomEnd) // pojok kanan bawah
-                .padding(16.dp) // jarak dari tepi
-            ,
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
-        ) {
-            Icon(
-                imageVector = Icons.Default.Save,
-                contentDescription = "Simpan Data"
+                .fillMaxWidth()
+                .height(54.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             )
+        ) {
+            Icon(imageVector = Icons.Default.Save, contentDescription = "Simpan")
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Simpan Perubahan", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
+
+        Spacer(modifier = Modifier.height(100.dp))
     }
 
     if (alertState.value.isVisible) {
         AlertDialog(
-            onDismissRequest = {
-                AlertHelper.dismiss(alertState)
-            },
-            title = {
-                Text(alertState.value.type.title)
-            },
-            text = {
-                Text(alertState.value.message)
-            },
+            onDismissRequest = { AlertHelper.dismiss(alertState) },
+            title = { Text(alertState.value.type.title) },
+            text = { Text(alertState.value.message) },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        AlertHelper.dismiss(alertState)
-                    }
-                ) {
-                    Text("OK")
-                }
+                TextButton(onClick = { AlertHelper.dismiss(alertState) }) { Text("OK") }
             }
         )
     }

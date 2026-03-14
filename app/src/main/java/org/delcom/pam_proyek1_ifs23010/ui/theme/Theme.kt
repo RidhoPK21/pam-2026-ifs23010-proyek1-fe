@@ -31,16 +31,16 @@ private val LightColors = lightColorScheme(
     surface = md_theme_light_surface,
     onSurface = md_theme_light_onSurface,
 
-    surfaceVariant = md_theme_light_surfaceVariant,
+//    surfaceVariant = md_theme_light_surfaceVariant,
     onSurfaceVariant = md_theme_light_onSurfaceVariant,
 
-    outline = md_theme_light_outline,
-    inverseSurface = md_theme_light_inverseSurface,
-    inverseOnSurface = md_theme_light_inverseOnSurface,
-    inversePrimary = md_theme_light_inversePrimary,
-
-    surfaceTint = md_theme_light_surfaceTint,
-    scrim = md_theme_light_shadow
+//    outline = md_theme_light_outline,
+//    inverseSurface = md_theme_light_inverseSurface,
+//    inverseOnSurface = md_theme_light_inverseOnSurface,
+//    inversePrimary = md_theme_light_inversePrimary,
+//
+//    surfaceTint = md_theme_light_surfaceTint,
+//    scrim = md_theme_light_shadow
 )
 
 private val DarkColors = darkColorScheme(
@@ -68,16 +68,16 @@ private val DarkColors = darkColorScheme(
     surface = md_theme_dark_surface,
     onSurface = md_theme_dark_onSurface,
 
-    surfaceVariant = md_theme_dark_surfaceVariant,
+//    surfaceVariant = md_theme_dark_surfaceVariant,
     onSurfaceVariant = md_theme_dark_onSurfaceVariant,
 
-    outline = md_theme_dark_outline,
-    inverseSurface = md_theme_dark_inverseSurface,
-    inverseOnSurface = md_theme_dark_inverseOnSurface,
-    inversePrimary = md_theme_dark_inversePrimary,
-
-    surfaceTint = md_theme_dark_surfaceTint,
-    scrim = md_theme_dark_shadow
+//    outline = md_theme_dark_outline,
+//    inverseSurface = md_theme_dark_inverseSurface,
+//    inverseOnSurface = md_theme_dark_inverseOnSurface,
+//    inversePrimary = md_theme_dark_inversePrimary,
+//
+//    surfaceTint = md_theme_dark_surfaceTint,
+//    scrim = md_theme_dark_shadow
 )
 
 @Composable

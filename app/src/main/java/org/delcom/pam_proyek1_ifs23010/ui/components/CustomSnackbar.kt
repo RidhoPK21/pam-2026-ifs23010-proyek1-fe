@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarData
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -42,31 +44,34 @@ fun CustomSnackbar(
 
     Surface(
         color = bgColor,
-        shape = RoundedCornerShape(8.dp),
-        tonalElevation = 6.dp,
+        shape = RoundedCornerShape(16.dp), // PERBAIKAN: Lebih melengkung agar senada dengan UI baru
+        shadowElevation = 4.dp, // PERBAIKAN: Menggunakan shadowElevation
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp) // PERBAIKAN: Memberi jarak agar mengambang (floating)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+            modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconColor
             )
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = message,
                 color = Color(0xFF383A42),
+                style = MaterialTheme.typography.bodyMedium, // PERBAIKAN: Tipografi lebih rapi
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = onDismiss) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
-                    tint = Color(0xFF383A42)
+                    tint = Color(0xFF383A42).copy(alpha = 0.7f) // Ikon close sedikit lebih pudar
                 )
             }
         }

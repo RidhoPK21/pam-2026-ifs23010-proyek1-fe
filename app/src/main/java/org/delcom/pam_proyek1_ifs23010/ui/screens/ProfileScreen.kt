@@ -11,9 +11,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -22,7 +24,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,7 +44,7 @@ import org.delcom.pam_proyek1_ifs23010.R
 import org.delcom.pam_proyek1_ifs23010.helper.ConstHelper
 import org.delcom.pam_proyek1_ifs23010.helper.RouteHelper
 import org.delcom.pam_proyek1_ifs23010.helper.ToolsHelper
-import org.delcom.pam_proyek1_ifs23010.network.events.data.ResponseUserData // Pastikan ke events
+import org.delcom.pam_proyek1_ifs23010.network.events.data.ResponseUserData
 import org.delcom.pam_proyek1_ifs23010.ui.components.BottomNavComponent
 import org.delcom.pam_proyek1_ifs23010.ui.components.LoadingUI
 import org.delcom.pam_proyek1_ifs23010.ui.components.TopAppBarComponent
@@ -54,11 +58,10 @@ import java.io.FileOutputStream
 fun ProfileScreen(
     navController: NavHostController,
     authViewModel: AuthViewModel,
-    eventViewModel: EventViewModel // Ubah parameter TodoViewModel ke EventViewModel
+    eventViewModel: EventViewModel
 ) {
-    // Ambil data dari viewmodel
     val uiStateAuth by authViewModel.uiState.collectAsState()
-    val uiStateEvent by eventViewModel.uiState.collectAsState() // Ubah variabel state
+    val uiStateEvent by eventViewModel.uiState.collectAsState()
 
     var isLoading by remember { mutableStateOf(false) }
     var profile by remember { mutableStateOf<ResponseUserData?>(null) }
@@ -66,11 +69,9 @@ fun ProfileScreen(
 
     val context = LocalContext.current
 
-    // State untuk memunculkan Dialog Edit
     var showEditProfileDialog by remember { mutableStateOf(false) }
     var showEditPasswordDialog by remember { mutableStateOf(false) }
 
-    // Launcher untuk memilih gambar dari Galeri Android
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
@@ -114,19 +115,15 @@ fun ProfileScreen(
         }
     }
 
-    // Memantau aksi Update Profile (Nama/Username, Foto, Sandi)
     LaunchedEffect(uiStateEvent.profileChange, uiStateEvent.profileChangePassword, uiStateEvent.profileChangePhoto) {
         val states = listOf(uiStateEvent.profileChange, uiStateEvent.profileChangePassword, uiStateEvent.profileChangePhoto)
 
         states.forEach { state ->
-            // Ubah pengecekan TodoActionUIState menjadi EventActionUIState
             if (state is EventActionUIState.Success) {
                 Toast.makeText(context, "Berhasil diperbarui!", Toast.LENGTH_SHORT).show()
-                // Reset state & muat ulang data terbaru agar layar ter-refresh
                 eventViewModel.uiState.value.profileChange = EventActionUIState.Loading
                 eventViewModel.uiState.value.profileChangePassword = EventActionUIState.Loading
                 eventViewModel.uiState.value.profileChangePhoto = EventActionUIState.Loading
-
                 eventViewModel.getProfile(authToken ?: "")
             } else if (state is EventActionUIState.Error) {
                 Toast.makeText(context, "Error: ${state.message}", Toast.LENGTH_SHORT).show()
@@ -145,13 +142,11 @@ fun ProfileScreen(
         }
     }
 
-    // Tampilkan halaman loading
     if(isLoading || profile == null){
         LoadingUI()
         return
     }
 
-    // Menu Top App Bar
     val menuItems = listOf(
         TopAppBarMenuItem(
             text = "Logout",
@@ -164,15 +159,14 @@ fun ProfileScreen(
     Column(
         modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)
     ) {
-        // Top App Bar
         TopAppBarComponent(
             navController = navController,
             title = "Profile",
             showBackButton = false,
-            customMenuItems = menuItems
+            customMenuItems = menuItems,
+            elevation = 0 // <--- TAMBAHKAN BARIS INI
         )
 
-        // Content
         Box(modifier = Modifier.weight(1f)) {
             ProfileUI(
                 profile = profile!!,
@@ -185,7 +179,6 @@ fun ProfileScreen(
                 onEditPasswordClick = { showEditPasswordDialog = true }
             )
         }
-        // Bottom Nav
         BottomNavComponent(navController = navController)
     }
 
@@ -205,7 +198,7 @@ fun ProfileScreen(
                     OutlinedTextField(
                         value = inputName,
                         onValueChange = { inputName = it },
-                        label = { Text("Nama") },
+                        label = { Text("Nama Lengkap") },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
@@ -217,7 +210,7 @@ fun ProfileScreen(
                     OutlinedTextField(
                         value = inputAbout,
                         onValueChange = { inputAbout = it },
-                        label = { Text("Tentang Saya") },
+                        label = { Text("Tentang Saya / Bio") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
                     )
@@ -269,7 +262,7 @@ fun ProfileScreen(
                     eventViewModel.putUserMePassword(authToken ?: "", oldPassword, newPassword)
                     showEditPasswordDialog = false
                     isLoading = true
-                }) { Text("Ubah Sandi") }
+                }) { Text("Ubah") }
             },
             dismissButton = {
                 TextButton(onClick = { showEditPasswordDialog = false }) { Text("Batal") }
@@ -286,104 +279,164 @@ fun ProfileUI(
     onEditPasswordClick: () -> Unit
 ){
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        // Header Profile
+        // 1. BAGIAN HEADER (MELENGKUNG & FOTO PROFIL)
         Box(
-            modifier = Modifier.fillMaxWidth().padding(top = 32.dp, bottom = 16.dp),
-            contentAlignment = Alignment.Center
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(260.dp),
+            contentAlignment = Alignment.TopCenter
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // Latar Belakang Biru Melengkung
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .clip(RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp))
+                    .background(MaterialTheme.colorScheme.primary)
+            )
 
-                // Foto Profil dengan Ikon Edit
-                Box(contentAlignment = Alignment.BottomEnd) {
-                    AsyncImage(
-                        model = ToolsHelper.getUserImage(profile.id) + "?time=${System.currentTimeMillis()}",
-                        contentDescription = "Photo Profil",
-                        placeholder = painterResource(R.drawable.img_placeholder),
-                        error = painterResource(R.drawable.img_placeholder),
-                        modifier = Modifier
-                            .size(120.dp)
-                            .clip(CircleShape)
-                            .border(3.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                            .clickable { onEditPhotoClick() }
-                    )
-                    // Ikon Pensil
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                            .clickable { onEditPhotoClick() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Foto",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = profile.name,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
+            // Foto Profil Mengambang
+            Box(
+                modifier = Modifier
+                    .padding(top = 90.dp)
+                    .size(140.dp),
+                contentAlignment = Alignment.BottomEnd
+            ) {
+                AsyncImage(
+                    model = ToolsHelper.getUserImage(profile.id) + "?time=${System.currentTimeMillis()}",
+                    contentDescription = "Photo Profil",
+                    placeholder = painterResource(R.drawable.img_placeholder),
+                    error = painterResource(R.drawable.img_placeholder),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(140.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .border(4.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                        .shadow(8.dp, CircleShape)
+                        .clickable { onEditPhotoClick() }
                 )
 
-                Text(
-                    text = "@${profile.username}",
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                // Menampilkan Bio/Tentang Saya
-                if (!profile.about.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = profile.about!!,
-                        fontSize = 14.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 32.dp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                // Ikon Kamera Kecil untuk Ganti Foto
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .offset(x = (-4).dp, y = (-4).dp)
+                        .shadow(4.dp, CircleShape)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondary)
+                        .clickable { onEditPhotoClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = "Ganti Foto",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        // 2. BAGIAN INFORMASI NAMA & BIO
+        Text(
+            text = profile.name,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
 
-        // Tombol Aksi
-        Button(
-            onClick = onEditProfileClick,
-            modifier = Modifier.fillMaxWidth(0.8f).padding(vertical = 8.dp)
-        ) {
-            Icon(imageVector = Icons.Default.Person, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Edit Profil")
-        }
+        Text(
+            text = "@${profile.username}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(top = 4.dp)
+        )
 
-        OutlinedButton(
-            onClick = onEditPasswordClick,
-            modifier = Modifier.fillMaxWidth(0.8f)
-        ) {
-            Icon(imageVector = Icons.Default.Lock, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Ubah Kata Sandi")
+        if (!profile.about.isNullOrBlank()) {
+            Text(
+                text = "\"${profile.about}\"",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 16.dp, start = 32.dp, end = 32.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
+
+        // 3. BAGIAN KOTAK MENU PENGATURAN (CARD)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                // Menu Edit Profil
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onEditProfileClick() }
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Edit Profil",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "Edit Informasi Profil",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                // Garis Pemisah (Divider)
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                )
+
+                // Menu Ubah Kata Sandi
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onEditPasswordClick() }
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Ubah Sandi",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "Ubah Kata Sandi",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(80.dp)) // Ruang untuk BottomNav
     }
 }
 
-// ==========================================
-// FUNGSI BANTUAN UNTUK UPLOAD GAMBAR
-// ==========================================
 fun getMultipartFromUri(context: Context, uri: Uri): MultipartBody.Part? {
     return try {
         val inputStream = context.contentResolver.openInputStream(uri) ?: return null

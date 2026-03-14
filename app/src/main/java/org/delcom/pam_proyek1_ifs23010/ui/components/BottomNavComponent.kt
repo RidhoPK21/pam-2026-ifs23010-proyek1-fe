@@ -4,21 +4,18 @@ import android.content.res.Configuration
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Event // Ganti icon ke Event
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.Event // Ganti icon ke Event
+import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Badge
@@ -53,7 +50,6 @@ sealed class MenuBottomNav(
     val iconActive: ImageVector,
 ) {
     object Home : MenuBottomNav(ConstHelper.RouteNames.Home.path, "Home", Icons.Outlined.Home, Icons.Filled.Home)
-    // Ganti Todos menjadi Events
     object Events : MenuBottomNav(ConstHelper.RouteNames.Events.path, "Kegiatan", Icons.Outlined.Event, Icons.Filled.Event)
     object Profile : MenuBottomNav(ConstHelper.RouteNames.Profile.path, "Profile", Icons.Outlined.Person, Icons.Filled.Person)
 }
@@ -62,7 +58,7 @@ sealed class MenuBottomNav(
 fun BottomNavComponent(navController: NavHostController) {
     val items: List<MenuBottomNav> = listOf(
         MenuBottomNav.Home,
-        MenuBottomNav.Events, // Ganti Todos menjadi Events
+        MenuBottomNav.Events,
         MenuBottomNav.Profile,
     )
 
@@ -72,23 +68,23 @@ fun BottomNavComponent(navController: NavHostController) {
         modifier = Modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 8.dp,
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                elevation = 12.dp,
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
             ),
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         tonalElevation = 2.dp,
         color = MaterialTheme.colorScheme.surface
     ) {
         NavigationBar(
             containerColor = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.height(120.dp),
+            modifier = Modifier.height(85.dp), // PERBAIKAN: Tinggi dikurangi karena teks dihapus
             tonalElevation = 0.dp
         ) {
             items.forEachIndexed { _, screen ->
                 val selected = currentRoute?.contains(screen.route) == true
                 val animatedHeight by animateDpAsState(
-                    targetValue = if (selected) 56.dp else 48.dp,
+                    targetValue = if (selected) 46.dp else 40.dp,
                     label = "navigationHeight"
                 )
 
@@ -98,28 +94,20 @@ fun BottomNavComponent(navController: NavHostController) {
                         RouteHelper.to(navController, screen.route, true)
                     },
                     icon = {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            // Icon dengan efek khusus
-                            NavigationIcon(
-                                selected = selected,
-                                screen = screen,
-                                hasNotification = false
-                            )
-                        }
+                        // Langsung panggil NavigationIcon tanpa perlu ditumpuk dengan teks
+                        NavigationIcon(
+                            selected = selected,
+                            screen = screen,
+                            hasNotification = false,
+                            animatedHeight = animatedHeight
+                        )
                     },
-                    modifier = Modifier
-                        .height(animatedHeight)
-                        .padding(vertical = if (selected) 0.dp else 4.dp),
-                    alwaysShowLabel = true,
+                    // PERBAIKAN: Hapus label text sepenuhnya
+                    alwaysShowLabel = false,
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
                         unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        indicatorColor = Color.Transparent // Remove default indicator
+                        indicatorColor = Color.Transparent // Hapus indikator bawaan (bentuk elips)
                     )
                 )
             }
@@ -132,25 +120,27 @@ fun BottomNavComponent(navController: NavHostController) {
 fun NavigationIcon(
     selected: Boolean,
     screen: MenuBottomNav,
-    hasNotification: Boolean = false
+    hasNotification: Boolean = false,
+    animatedHeight: androidx.compose.ui.unit.Dp
 ) {
     Box(
-        modifier = Modifier.size(48.dp),
+        modifier = Modifier
+            .size(width = 64.dp, height = animatedHeight), // Lebar kotak aktif
         contentAlignment = Alignment.Center
     ) {
-        // Background untuk icon yang aktif
+        // Background kotak untuk icon yang sedang aktif
         if (selected) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .clip(RoundedCornerShape(15.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
                     )
                     .border(
                         width = 1.dp,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                        shape = CircleShape
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(16.dp)
                     )
             )
         }
@@ -171,7 +161,7 @@ fun NavigationIcon(
             Icon(
                 imageVector = if (selected) screen.iconActive else screen.icon,
                 contentDescription = screen.title,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(28.dp), // PERBAIKAN: Ikon sedikit diperbesar karena sendirian
                 tint = if (selected) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -187,9 +177,7 @@ fun PreviewBottomNavComponent() {
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.background
         ) {
-            Column(
-                modifier = Modifier
-            ) {
+            Column {
                 BottomNavComponent(
                     navController = NavHostController(LocalContext.current)
                 )
@@ -206,9 +194,7 @@ fun PreviewBottomNavComponentDark() {
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.background
         ) {
-            Column(
-                modifier = Modifier
-            ) {
+            Column {
                 BottomNavComponent(
                     navController = NavHostController(LocalContext.current)
                 )

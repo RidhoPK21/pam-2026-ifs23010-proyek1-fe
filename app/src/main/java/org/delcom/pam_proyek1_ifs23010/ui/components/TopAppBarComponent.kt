@@ -1,6 +1,7 @@
 package org.delcom.pam_proyek1_ifs23010.ui.components
 
 import android.content.res.Configuration
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -80,7 +82,7 @@ fun TopAppBarComponent(
     showMenu: Boolean = true,
     customMenuItems: List<TopAppBarMenuItem>? = null,
     onBackClick: (() -> Unit)? = null,
-    elevation: Int = 4,
+    elevation: Int = 8, // Sedikit lebih tebal bayangannya
     withSearch: Boolean = false,
     searchQuery: TextFieldValue = TextFieldValue(""),
     onSearchQueryChange: (TextFieldValue) -> Unit = {},
@@ -115,14 +117,15 @@ fun TopAppBarComponent(
             .fillMaxWidth()
             .shadow(
                 elevation = elevation.dp,
-                shape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp),
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp), // Melengkung modern
                 spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
             ),
-        shape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp),
-        color = MaterialTheme.colorScheme.surface,
+//        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+        color = MaterialTheme.colorScheme.primary, // PERBAIKAN: Background Biru Tua Utama
         tonalElevation = elevation.dp
     ) {
         TopAppBar(
+            modifier = Modifier.padding(horizontal = 4.dp), // Sedikit jarak dari pinggir layar
             title = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -130,15 +133,13 @@ fun TopAppBarComponent(
                     horizontalArrangement = Arrangement.Start
                 ) {
                     if (showBackButton && !isSearching) {
-                        // Back button dengan efek visual
+                        // Back button (Tombol Kembali)
                         Card(
                             modifier = Modifier
                                 .size(40.dp)
-                                .clip(RoundedCornerShape(15.dp)),
+                                .clip(CircleShape), // PERBAIKAN: Bentuk bulat penuh agar elegan
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(
-                                    alpha = 0.2f
-                                ),
+                                containerColor = Color.White.copy(alpha = 0.2f), // Semi transparan di atas biru
                             ),
                             onClick = {
                                 onBackClick?.invoke() ?: RouteHelper.back(navController)
@@ -151,210 +152,190 @@ fun TopAppBarComponent(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = "Back",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    modifier = Modifier.size(24.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary // Ikon putih
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
                     }
 
                     if (isSearching) {
-                        // Search field
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = { onSearchQueryChange(it) },
-                            placeholder = {
-                                Text(
-                                    "Cari...",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
-                            },
-                            singleLine = true,
+                        // Area Pencarian
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .focusRequester(queryFocusRequester),
+                                .weight(1f)
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(Color.White.copy(alpha = 0.2f)), // Background search bar
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            TextField(
+                                value = searchQuery,
+                                onValueChange = { onSearchQueryChange(it) },
+                                placeholder = {
+                                    Text(
+                                        "Cari kegiatan...",
+                                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(queryFocusRequester),
 
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Search
-                            ),
-
-                            keyboardActions = KeyboardActions(
-                                onSearch = {
-                                    onSearchAction()
-                                }
-                            ),
-
-                            colors = TextFieldDefaults.colors(
-                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                disabledContainerColor = Color.Transparent,
-                                errorContainerColor = Color.Transparent,
-                                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                                unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(
-                                    alpha = 0.5f
+                                keyboardOptions = KeyboardOptions(
+                                    imeAction = ImeAction.Search
                                 ),
-                                disabledIndicatorColor = Color.Transparent,
-                                cursorColor = MaterialTheme.colorScheme.primary
-                            ),
-                            textStyle = MaterialTheme.typography.bodyLarge
-                        )
+
+                                keyboardActions = KeyboardActions(
+                                    onSearch = {
+                                        onSearchAction()
+                                    }
+                                ),
+
+                                colors = TextFieldDefaults.colors(
+                                    focusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onPrimary,
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    disabledContainerColor = Color.Transparent,
+                                    errorContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent, // Hilangkan garis bawah
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    disabledIndicatorColor = Color.Transparent,
+                                    cursorColor = MaterialTheme.colorScheme.onPrimary
+                                ),
+                                textStyle = MaterialTheme.typography.bodyLarge
+                            )
+                        }
 
                         SideEffect {
                             queryFocusRequester.requestFocus()
                         }
                     } else {
                         // Title
-                        Box(
-                            modifier = Modifier
-                        ) {
-                            Text(
-                                text = title,
-                                style = MaterialTheme.typography.headlineSmall.copy(
-                                    fontWeight = FontWeight.Normal
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold // PERBAIKAN: Judul lebih tebal
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimary // Teks Putih
+                        )
                     }
-
-
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                titleContentColor = MaterialTheme.colorScheme.onSurface,
-                actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                containerColor = Color.Transparent, // Agar mengikuti background Surface di atasnya (Primary)
+                titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                actionIconContentColor = MaterialTheme.colorScheme.onPrimary // Ikon-ikon menu berwarna putih
             ),
             actions = {
                 if (isSearching) {
                     // Close search button
-                    Box(
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        IconButton(
-                            onClick = {
-                                setSearchState(false)
-                                onSearchQueryChange(TextFieldValue(""))
-                                onSearchAction()
-                            },
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Close,
-                                contentDescription = "Tutup pencarian",
-                                modifier = Modifier.size(24.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                    IconButton(
+                        onClick = {
+                            setSearchState(false)
+                            onSearchQueryChange(TextFieldValue(""))
+                            onSearchAction()
                         }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Tutup pencarian",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                 } else {
                     // Search button
                     if (withSearch) {
-                        Box(
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    setSearchState(true)
-                                },
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Search,
-                                    contentDescription = "Cari",
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                        IconButton(
+                            onClick = {
+                                setSearchState(true)
                             }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = "Cari",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
                     }
 
-                    // Menu Button
+                    // Menu Button (Titik 3)
                     if (showMenu) {
-                        Box(
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
+                        Box {
                             IconButton(
-                                onClick = { expanded = true },
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
+                                onClick = { expanded = true }
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.MoreVert,
                                     contentDescription = "Menu",
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
-                        }
 
-                        // Dropdown menu dengan enhanced design
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = {
-                                setExpandState(false)
-                            },
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                        ) {
-                            // Menu items
-                            menuItems.forEachIndexed { index, item ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = item.icon,
-                                                contentDescription = item.text,
-                                                modifier = Modifier.size(20.dp),
-                                                tint = if (item.isDestructive)
-                                                    MaterialTheme.colorScheme.error
-                                                else
-                                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
+                            // Dropdown menu popup
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = {
+                                    setExpandState(false)
+                                },
+                                containerColor = MaterialTheme.colorScheme.surface, // Balik ke putih/hitam
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.padding(8.dp)
+                            ) {
+                                // Menu items
+                                menuItems.forEachIndexed { index, item ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = item.icon,
+                                                    contentDescription = item.text,
+                                                    modifier = Modifier.size(20.dp),
+                                                    tint = if (item.isDestructive)
+                                                        MaterialTheme.colorScheme.error
+                                                    else
+                                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
 
-                                            Text(
-                                                text = item.text,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = if (item.isDestructive)
-                                                    MaterialTheme.colorScheme.error
-                                                else
-                                                    MaterialTheme.colorScheme.onSurface,
-                                                fontWeight = if (item.isDestructive) FontWeight.Bold else FontWeight.Medium
-                                            )
-                                        }
-                                    },
-                                    onClick = {
-                                        setExpandState(false)
-                                        if (item.route != null) {
-                                            RouteHelper.to(
-                                                navController,
-                                                item.route
-                                            )
-                                        }
-                                        item.onClick?.invoke()
-                                    },
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                )
-
-                                // Divider sebelum item terakhir jika destructive
-                                if (index == menuItems.size - 2 && menuItems.last().isDestructive) {
-                                    HorizontalDivider(
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                        modifier = Modifier.padding(vertical = 4.dp)
+                                                Text(
+                                                    text = item.text,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = if (item.isDestructive)
+                                                        MaterialTheme.colorScheme.error
+                                                    else
+                                                        MaterialTheme.colorScheme.onSurface,
+                                                    fontWeight = if (item.isDestructive) FontWeight.Bold else FontWeight.Medium
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            setExpandState(false)
+                                            if (item.route != null) {
+                                                RouteHelper.to(
+                                                    navController,
+                                                    item.route
+                                                )
+                                            }
+                                            item.onClick?.invoke()
+                                        },
+                                        modifier = Modifier.padding(horizontal = 4.dp)
                                     )
+
+                                    // Divider sebelum item terakhir jika destructive
+                                    if (index == menuItems.size - 2 && menuItems.last().isDestructive) {
+                                        HorizontalDivider(
+                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                            modifier = Modifier.padding(vertical = 4.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -403,42 +384,6 @@ fun PreviewTopAppBarWithBackComponentDark() {
                     title = "Profile Settings"
                 )
             }
-        }
-    }
-}
-
-// Contoh penggunaan dengan custom menu
-@Preview(showBackground = true, name = "Custom Menu")
-@Composable
-fun PreviewTopAppBarCustomMenu() {
-    MaterialTheme {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            val customItems = listOf(
-                TopAppBarMenuItem(
-                    text = "Dashboard",
-                    icon = Icons.Filled.Person,
-                    onClick = { /* Custom action */ }
-                ),
-                TopAppBarMenuItem(
-                    text = "Notifications",
-                    icon = Icons.Filled.Settings,
-                    onClick = { /* Custom action */ }
-                ),
-                TopAppBarMenuItem(
-                    text = "Help & Support",
-                    icon = Icons.Filled.Key,
-                    onClick = { /* Custom action */ }
-                )
-            )
-
-            TopAppBarComponent(
-                navController = NavHostController(LocalContext.current),
-                title = "Custom Menu",
-                customMenuItems = customItems
-            )
         }
     }
 }

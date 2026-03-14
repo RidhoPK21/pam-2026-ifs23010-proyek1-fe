@@ -7,8 +7,10 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,15 +18,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -38,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -90,11 +97,7 @@ fun EventsDetailScreen(
         isLoading = true
 
         if (uiStateAuth.auth !is AuthUIState.Success) {
-            RouteHelper.to(
-                navController,
-                ConstHelper.RouteNames.Home.path,
-                true
-            )
+            RouteHelper.to(navController, ConstHelper.RouteNames.Home.path, true)
             return@LaunchedEffect
         }
 
@@ -119,12 +122,8 @@ fun EventsDetailScreen(
     }
 
     fun onDelete() {
-        if (authToken.value == null) {
-            return
-        }
-
+        if (authToken.value == null) return
         uiStateEvent.eventDelete = EventActionUIState.Loading
-
         isLoading = true
         eventViewModel.deleteEvent(authToken.value!!, eventId)
     }
@@ -132,76 +131,38 @@ fun EventsDetailScreen(
     LaunchedEffect(uiStateEvent.eventDelete) {
         when (val state = uiStateEvent.eventDelete) {
             is EventActionUIState.Success -> {
-                SuspendHelper.showSnackBar(
-                    snackbarHost = snackbarHost,
-                    type = SnackBarType.SUCCESS,
-                    message = state.message
-                )
-                RouteHelper.to(
-                    navController,
-                    ConstHelper.RouteNames.Events.path,
-                    true
-                )
+                SuspendHelper.showSnackBar(snackbarHost, SnackBarType.SUCCESS, state.message)
+                RouteHelper.to(navController, ConstHelper.RouteNames.Events.path, true)
                 uiStateEvent.event = EventUIState.Loading
                 isLoading = false
             }
-
             is EventActionUIState.Error -> {
-                SuspendHelper.showSnackBar(
-                    snackbarHost = snackbarHost,
-                    type = SnackBarType.ERROR,
-                    message = state.message
-                )
+                SuspendHelper.showSnackBar(snackbarHost, SnackBarType.ERROR, state.message)
                 isLoading = false
             }
-
             else -> {}
         }
     }
 
-    fun onChangeCover(
-        context: Context,
-        file: Uri
-    ) {
-        if (authToken.value == null) {
-            return
-        }
-
+    fun onChangeCover(context: Context, file: Uri) {
+        if (authToken.value == null) return
         uiStateEvent.eventChangeCover = EventActionUIState.Loading
         isLoading = true
-
         val filePart = uriToMultipart(context, file, "file")
-
-        eventViewModel.putEventCover(
-            authToken = authToken.value!!,
-            eventId = eventId,
-            file = filePart
-        )
+        eventViewModel.putEventCover(authToken.value!!, eventId, filePart!!)
     }
 
     LaunchedEffect(uiStateEvent.eventChangeCover) {
         when (val state = uiStateEvent.eventChangeCover) {
             is EventActionUIState.Success -> {
-                if(event != null){
-                    event!!.updatedAt = System.currentTimeMillis().toString()
-                }
-                SuspendHelper.showSnackBar(
-                    snackbarHost = snackbarHost,
-                    type = SnackBarType.SUCCESS,
-                    message = state.message
-                )
+                event?.updatedAt = System.currentTimeMillis().toString()
+                SuspendHelper.showSnackBar(snackbarHost, SnackBarType.SUCCESS, state.message)
                 isLoading = false
             }
-
             is EventActionUIState.Error -> {
-                SuspendHelper.showSnackBar(
-                    snackbarHost = snackbarHost,
-                    type = SnackBarType.ERROR,
-                    message = state.message
-                )
+                SuspendHelper.showSnackBar(snackbarHost, SnackBarType.ERROR, state.message)
                 isLoading = false
             }
-
             else -> {}
         }
     }
@@ -211,7 +172,6 @@ fun EventsDetailScreen(
         return
     }
 
-    // NULL SAFE ID
     val safeEventId = event?.id ?: ""
 
     val detailMenuItems = listOf(
@@ -220,19 +180,14 @@ fun EventsDetailScreen(
             icon = Icons.Filled.Edit,
             route = null,
             onClick = {
-                RouteHelper.to(
-                    navController,
-                    ConstHelper.RouteNames.EventsEdit.path.replace("{eventId}", safeEventId),
-                )
+                RouteHelper.to(navController, ConstHelper.RouteNames.EventsEdit.path.replace("{eventId}", safeEventId))
             }
         ),
         TopAppBarMenuItem(
             text = "Hapus Data",
             icon = Icons.Filled.Delete,
             route = null,
-            onClick = {
-                isConfirmDelete = true
-            }
+            onClick = { isConfirmDelete = true }
         ),
     )
 
@@ -240,18 +195,14 @@ fun EventsDetailScreen(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
-    )
-    {
+    ) {
         TopAppBarComponent(
             navController = navController,
             title = "Detail Kegiatan",
             showBackButton = true,
             customMenuItems = detailMenuItems
         )
-        Box(
-            modifier = Modifier
-                .weight(1f)
-        ) {
+        Box(modifier = Modifier.weight(1f)) {
             EventsDetailUI(
                 event = event!!,
                 onChangeCover = ::onChangeCover,
@@ -263,9 +214,7 @@ fun EventsDetailScreen(
                 title = "Konfirmasi Hapus Data",
                 message = "Apakah Anda yakin ingin menghapus kegiatan ini?",
                 confirmText = "Ya, Hapus",
-                onConfirm = {
-                    onDelete()
-                },
+                onConfirm = { onDelete() },
                 cancelText = "Batal",
                 destructiveAction = true
             )
@@ -282,7 +231,6 @@ fun EventsDetailUI(
     var dataFile by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current
 
-    // PERBAIKAN: VARIABEL NULL-SAFE
     val safeId = event.id ?: ""
     val safeTitle = event.title ?: "Tanpa Judul"
     val safeStatus = event.status ?: "belum terlaksana"
@@ -302,35 +250,39 @@ fun EventsDetailUI(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
-    )
-    {
-        Column(
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // 1. HEADER MELENGKUNG DAN COVER BANNER
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp)
-        )
-        {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+                .height(260.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            // Latar Belakang Biru Melengkung
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+
+            // Banner Cover Mengambang
+            Card(
+                modifier = Modifier
+                    .padding(top = 64.dp)
+                    .padding(horizontal = 24.dp)
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clickable {
+                        imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(8.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(150.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .clickable {
-                            imagePicker.launch(
-                                PickVisualMediaRequest(
-                                    ActivityResultContracts.PickVisualMedia.ImageOnly
-                                )
-                            )
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    // PERBAIKAN: Gunakan fungsi gambar yang sudah diperbarui dan variabel safe
+                Box(modifier = Modifier.fillMaxSize()) {
                     AsyncImage(
                         model = dataFile ?: ToolsHelper.getEventImage(safeId, safeUpdatedAt),
                         contentDescription = "Cover Kegiatan",
@@ -339,161 +291,139 @@ fun EventsDetailUI(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
-                }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = if (dataFile == null)
-                        "Sentuh cover untuk mengubah"
-                    else
-                        "Gambar baru dipilih",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                if (dataFile != null) {
-                    Button(
-                        onClick = {
-                            onChangeCover(context, dataFile!!)
-                        },
-                        shape = RoundedCornerShape(12.dp),
+                    // Ikon Kamera di Pojok Bawah
+                    Box(
                         modifier = Modifier
-                            .height(48.dp)
-                            .fillMaxWidth(0.7f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = Color.White
-                        )
+                            .align(Alignment.BottomEnd)
+                            .padding(12.dp)
+                            .size(36.dp)
+                            .shadow(4.dp, CircleShape)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.secondary),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "Simpan",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Ganti Cover",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
             }
+        }
 
+        // Tombol Simpan (Hanya Muncul Jika Gambar Baru Dipilih)
+        if (dataFile != null) {
             Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = safeTitle,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Button(
+                onClick = { onChangeCover(context, dataFile!!) },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .height(48.dp)
+                    .fillMaxWidth(0.6f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                )
             ) {
-                // PERBAIKAN: Null-safe checking untuk warna dan text
-                val statusColor = when (safeStatus.lowercase()) {
-                    "sudah terlaksana" -> MaterialTheme.colorScheme.secondaryContainer
-                    "dibatalkan" -> MaterialTheme.colorScheme.errorContainer
-                    else -> MaterialTheme.colorScheme.tertiaryContainer
-                }
-
-                val statusTextColor = when (safeStatus.lowercase()) {
-                    "sudah terlaksana" -> MaterialTheme.colorScheme.onSecondaryContainer
-                    "dibatalkan" -> MaterialTheme.colorScheme.onErrorContainer
-                    else -> MaterialTheme.colorScheme.onTertiaryContainer
-                }
-
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(statusColor)
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = safeStatus.uppercase(),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = statusTextColor
-                    )
-                }
+                Text("Simpan Cover Baru", fontWeight = FontWeight.Bold)
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 2. JUDUL DAN STATUS
+        Text(
+            text = safeTitle,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val statusColor = when (safeStatus.lowercase()) {
+            "sudah terlaksana" -> MaterialTheme.colorScheme.secondaryContainer
+            "dibatalkan" -> MaterialTheme.colorScheme.errorContainer
+            else -> MaterialTheme.colorScheme.tertiaryContainer
+        }
+
+        val statusTextColor = when (safeStatus.lowercase()) {
+            "sudah terlaksana" -> MaterialTheme.colorScheme.onSecondaryContainer
+            "dibatalkan" -> MaterialTheme.colorScheme.onErrorContainer
+            else -> MaterialTheme.colorScheme.onTertiaryContainer
+        }
+
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(statusColor)
+                .padding(horizontal = 16.dp, vertical = 6.dp)
+        ) {
+            Text(
+                text = safeStatus.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = statusTextColor
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // 3. CARD DETAIL INFORMASI
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            shape = MaterialTheme.shapes.medium,
-            elevation = CardDefaults.cardElevation(4.dp),
+                .padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(2.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        )
-        {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Tanggal Pelaksanaan",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = safeTanggal.ifEmpty { "-" },
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                DetailItem(label = "Divisi Penanggung Jawab", value = safeDivisi)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
 
-                Text(
-                    text = "Tempat Pelaksanaan",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = safeTempat.ifEmpty { "-" },
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                DetailItem(label = "Tanggal Pelaksanaan", value = safeTanggal.ifEmpty { "-" })
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
 
-                Text(
-                    text = "Estimasi Biaya",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "Rp ${safeEstimasi.ifEmpty { "0" }}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                DetailItem(label = "Tempat Pelaksanaan", value = safeTempat.ifEmpty { "-" })
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
 
-                Text(
-                    text = "Divisi Penanggung Jawab",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = safeDivisi.ifEmpty { "-" },
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
+                DetailItem(label = "Estimasi Biaya", value = "Rp ${safeEstimasi.ifEmpty { "0" }}")
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
 
-                Text(
-                    text = "Deskripsi Kegiatan",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = safeDeskripsi.ifEmpty { "-" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+                DetailItem(label = "Deskripsi Kegiatan", value = safeDeskripsi.ifEmpty { "-" })
             }
         }
+
+        Spacer(modifier = Modifier.height(80.dp)) // Ruang untuk Bottom Nav
+    }
+}
+
+// Fungsi Bantuan untuk Menampilkan Item Detail yang Rapi
+@Composable
+fun DetailItem(label: String, value: String) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
