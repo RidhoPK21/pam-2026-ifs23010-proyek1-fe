@@ -11,6 +11,6 @@ data class RequestUserChange (
 
 @Serializable
 data class RequestUserChangePassword (
-    val newPassword: String,
-    val password: String
+    val password: String,
+    val newPassword: String
 )

@@ -200,7 +200,8 @@ fun EventsDetailScreen(
             navController = navController,
             title = "Detail Kegiatan",
             showBackButton = true,
-            customMenuItems = detailMenuItems
+            customMenuItems = detailMenuItems,
+            elevation = 0
         )
         Box(modifier = Modifier.weight(1f)) {
             EventsDetailUI(
